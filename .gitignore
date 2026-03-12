@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*.log
+
+.venv/
+venv/
+
+stage100_next.png
+ascend_confirm.png
+
+failure_captures/

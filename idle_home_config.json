@@ -1,0 +1,239 @@
+{
+  "window": {
+    "title_substring": "VRChat",
+    "client_width": 1600,
+    "client_height": 900
+  },
+  "hotkeys": {
+    "abort": "F12",
+    "capture": "F8"
+  },
+  "timing": {
+    "startup_delay_sec": 5,
+    "combat_duration_sec": 50,
+    "after_cycle_wait_sec": 5
+  },
+  "sequences": {
+    "pickup_sword": [
+      {
+        "type": "key_hold",
+        "key": "W",
+        "seconds": 0.3
+      },
+      {
+        "type": "key_hold",
+        "key": "D",
+        "seconds": 1.765
+      },
+      {
+        "type": "vision_center_click",
+        "template": "templates/sword_pickup.png",
+        "anchor_x": 190,
+        "anchor_y": 280,
+        "search_region": [
+          450,
+          120,
+          700,
+          700
+        ],
+        "threshold": 0.32,
+        "candidate_threshold": 0.22,
+        "tracking_threshold": 0.2,
+        "centered_fallback_threshold": 0.24,
+        "centered_fallback_retries": 2,
+        "tolerance_px": 12,
+        "gain_x": 0.9,
+        "gain_y": 0.9,
+        "max_attempts": 12,
+        "max_step_px": 100,
+        "post_move_wait_sec": 0.05,
+        "pre_click_wait_sec": 0.03,
+        "post_click_wait_sec": 0.1,
+        "verify_absent_after_click": true,
+        "verify_wait_sec": 0.35,
+        "absent_threshold": 0.45,
+        "retry_on_verify_failure": true
+      },
+      {
+        "type": "wait",
+        "seconds": 10
+      },
+      {
+        "type": "mouse_wheel",
+        "delta": 120,
+        "repeat": 100,
+        "pause_sec": 0.02
+      },
+      {
+        "type": "wait",
+        "seconds": 0.5
+      },
+      {
+        "type": "mouse_drag_relative",
+        "button": "middle",
+        "dx": 0,
+        "dy": 500,
+        "steps": 50,
+        "step_delay_ms": 16,
+        "hold_before_move_sec": 0.08,
+        "release_wait_sec": 0.08
+      },
+      {
+        "type": "wait",
+        "seconds": 0.5
+      }
+    ],
+    "move_to_combat_position": [
+      {
+        "type": "key_hold",
+        "key": "S",
+        "seconds": 1.0
+      },
+      {
+        "type": "mouse_move_relative",
+        "dx": 890,
+        "dy": 0,
+        "steps": 12,
+        "step_delay_ms": 16
+      },
+      {
+        "type": "key_hold",
+        "key": "W",
+        "seconds": 3.9
+      }
+    ],
+    "enable_auto_attack": [
+      {
+        "type": "key_tap",
+        "key": "R"
+      },
+      {
+        "type": "wait",
+        "seconds": 0.4
+      },
+      {
+        "type": "mouse_move_relative",
+        "dx": 170,
+        "dy": 125,
+        "steps": 6,
+        "step_delay_ms": 16
+      },
+      {
+        "type": "left_click"
+      },
+      {
+        "type": "wait",
+        "seconds": 0.2
+      },
+      {
+        "type": "key_tap",
+        "key": "ESC"
+      }
+    ],
+    "disable_auto_attack": [
+      {
+        "type": "key_tap",
+        "key": "R"
+      },
+      {
+        "type": "wait",
+        "seconds": 0.4
+      },
+      {
+        "type": "mouse_move_relative",
+        "dx": 170,
+        "dy": 125,
+        "steps": 6,
+        "step_delay_ms": 16
+      },
+      {
+        "type": "left_click"
+      },
+      {
+        "type": "wait",
+        "seconds": 0.2
+      },
+      {
+        "type": "key_tap",
+        "key": "ESC"
+      }
+    ],
+    "ascend": [
+      {
+        "type": "key_hold",
+        "key": "S",
+        "seconds": 2.85
+      },
+      {
+        "type": "mouse_move_relative",
+        "dx": -890,
+        "dy": 0,
+        "steps": 12,
+        "step_delay_ms": 16
+      },
+      {
+        "type": "key_hold",
+        "key": "W",
+        "seconds": 1.1
+      },
+      {
+        "type": "wait",
+        "seconds": 0.35
+      },
+      {
+        "type": "vision_center_click",
+        "template": "templates/ascend_next_triangle.png",
+        "anchor_x": 22,
+        "anchor_y": 36,
+        "search_region": [
+          620,
+          240,
+          360,
+          280
+        ],
+        "threshold": 0.62,
+        "candidate_threshold": 0.55,
+        "tracking_threshold": 0.5,
+        "centered_fallback_threshold": 0.5,
+        "centered_fallback_retries": 2,
+        "tolerance_px": 14,
+        "gain_x": 0.9,
+        "gain_y": 0.9,
+        "max_attempts": 10,
+        "max_step_px": 90,
+        "post_move_wait_sec": 0.05,
+        "pre_click_wait_sec": 0.03,
+        "post_click_wait_sec": 0.15
+      },
+      {
+        "type": "wait",
+        "seconds": 0.35
+      },
+      {
+        "type": "mouse_move_relative",
+        "dx": -255,
+        "dy": 100,
+        "steps": 8,
+        "step_delay_ms": 16
+      },
+      {
+        "type": "left_click"
+      },
+      {
+        "type": "wait",
+        "seconds": 0.45
+      },
+      {
+        "type": "mouse_move_relative",
+        "dx": 145,
+        "dy": 20,
+        "steps": 5,
+        "step_delay_ms": 16
+      },
+      {
+        "type": "left_click"
+      }
+    ],
+    "after_ascend": []
+  }
+}

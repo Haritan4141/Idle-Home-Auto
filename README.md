@@ -1,0 +1,194 @@
+# Idle Home Bot Prototype
+
+This repository contains a configurable Windows desktop macro runner for looping `Idle Home` in `VRChat` desktop mode.
+
+It does not read VRChat memory or inject code. It finds the `VRChat` window, checks for a `1600x900` client area, and then replays a timed state machine:
+
+1. Pick up the sword.
+2. Move to the fixed combat position.
+3. Enable the avatar auto-attack gimmick.
+4. Wait for the configured combat duration.
+5. Trigger Astral Ascension.
+6. Repeat.
+
+## Files
+
+- `idle_home_bot.py`: main runner and calibrator.
+- `idle_home_config.json`: main config for timings and sequences.
+- `idle_home_config.extra.json`: optional extra sequences and local overrides, loaded automatically.
+
+## Important input note
+
+In `VRChat` desktop mode, many interactions are not driven by the Windows cursor.
+
+- World interactions often use the center reticle.
+- Some menus use an internal or virtual cursor.
+- In those cases, `GetCursorPos` will stay near the screen center, even though the game appears to move a cursor or view.
+
+That means `calibrate` is only useful when `VRChat` is showing a true cursor-driven UI.
+
+For world interactions, prefer:
+
+- `left_click` with no target, which clicks at the current in-game focus.
+- `mouse_move_relative`, which sends relative mouse movement instead of forcing the Windows cursor to an absolute screen position.
+
+## Commands
+
+Validate the config:
+
+```powershell
+python .\idle_home_bot.py validate
+```
+
+List visible windows:
+
+```powershell
+python .\idle_home_bot.py list-windows
+```
+
+Capture cursor-based points:
+
+```powershell
+python .\idle_home_bot.py calibrate
+```
+
+Run one cycle without sending real input:
+
+```powershell
+python .\idle_home_bot.py run --once --dry-run
+```
+
+Run one sequence for tuning:
+
+```powershell
+python .\idle_home_bot.py run-sequence enable_auto_attack --startup-delay 3
+```
+
+Run a scratch test sequence from the extra config:
+
+```powershell
+python .\idle_home_bot.py run-sequence test --startup-delay 3
+```
+
+Run a wheel-only test:
+
+```powershell
+python .\idle_home_bot.py run-wheel 120 --repeat 10 --startup-delay 3
+```
+
+Run the loop:
+
+```powershell
+python .\idle_home_bot.py run
+```
+
+## Calibration workflow
+
+Use this only for true cursor-based UI. If every capture comes back around `800,450` on a `1600x900` client, that is expected for center-locked desktop input, and you should switch to relative mouse actions instead of point capture.
+
+1. Launch `VRChat` in desktop mode.
+2. Set the client area to `1600x900`.
+3. Place your character at the exact start point for the loop.
+4. Run `python .\idle_home_bot.py calibrate`.
+5. For each point name, move the cursor over the target inside `VRChat` and press `F8`.
+6. Use `F12` at any time to abort.
+
+For the current `Idle Home` flow described here, you will usually skip this step and tune sequences directly.
+
+## Config structure
+
+`timing`
+
+- `startup_delay_sec`: countdown before the loop starts.
+- `combat_duration_sec`: how long to wait after enabling the auto-attack.
+- `after_cycle_wait_sec`: delay between completed loops.
+
+`sequences`
+
+Each sequence is a list of actions. Supported action types:
+
+- `wait`
+- `mouse_move`
+- `mouse_move_relative`
+- `mouse_drag_relative`
+- `mouse_wheel`
+- `vision_center_click`
+- `pattern_click`
+- `left_click`
+- `right_click`
+- `key_tap`
+- `key_hold`
+
+Examples:
+
+```json
+{ "type": "wait", "seconds": 0.5 }
+{ "type": "mouse_move_relative", "dx": 320, "dy": -120, "steps": 8, "step_delay_ms": 15 }
+{ "type": "mouse_drag_relative", "button": "middle", "dx": 0, "dy": 540, "steps": 16, "step_delay_ms": 16 }
+{ "type": "mouse_wheel", "delta": 120, "repeat": 10, "pause_sec": 0.02 }
+{ "type": "vision_center_click", "template": "templates/sword_pickup.png", "anchor_x": 190, "anchor_y": 280 }
+{ "type": "pattern_click", "offsets": [[0, 0], [20, 0], [-20, 0], [0, 20], [0, -20]], "pause_sec": 0.03 }
+{ "type": "left_click" }
+{ "type": "key_tap", "key": "R" }
+{ "type": "key_hold", "key": "W", "seconds": 1.25 }
+```
+
+`vision_center_click` supports optional post-click verification:
+
+```json
+{
+  "type": "vision_center_click",
+  "template": "templates/sword_pickup.png",
+  "verify_absent_after_click": true,
+  "verify_wait_sec": 0.35,
+  "absent_threshold": 0.45,
+  "retry_on_verify_failure": true
+}
+```
+
+`idle_home_config.extra.json`
+
+- This file is optional.
+- If it exists, it is loaded automatically after `idle_home_config.json`.
+- Use it for scratch sequences such as `test` without touching the main config.
+- `sequences`, `timing`, `hotkeys`, `window`, and `points` from the extra file override or extend the base config.
+
+Example:
+
+```json
+{
+  "sequences": {
+    "test": [
+      { "type": "key_hold", "key": "W", "seconds": 0.5 },
+      { "type": "wait", "seconds": 0.25 },
+      { "type": "mouse_wheel", "delta": 120, "repeat": 10, "pause_sec": 0.02 }
+    ]
+  }
+}
+```
+
+## Tuning order
+
+Use `run-sequence` and adjust one sequence at a time.
+
+1. `pickup_sword`
+2. `move_to_combat_position`
+3. `enable_auto_attack`
+4. `ascend`
+
+Recommended commands:
+
+```powershell
+python .\idle_home_bot.py run-sequence pickup_sword --startup-delay 3
+python .\idle_home_bot.py run-sequence move_to_combat_position --startup-delay 3
+python .\idle_home_bot.py run-sequence enable_auto_attack --startup-delay 3
+python .\idle_home_bot.py run-sequence ascend --startup-delay 3
+python .\idle_home_bot.py run --once --startup-delay 3
+```
+
+## Notes
+
+- The sample config is only a starting point. Movement timings and click targets will need adjustment for your avatar, camera setup, and world routing.
+- If the desktop cursor appears stuck at the center during calibration, stop using point capture for that part of the flow. Replace it with `mouse_move_relative` and center-based clicks.
+- The runner stops if the VRChat client area does not match `1600x900`. Use `--allow-size-mismatch` only when intentionally recalibrating or testing another setup.
+- The tool assumes the target window title contains `VRChat`.

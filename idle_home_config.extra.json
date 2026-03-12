@@ -1,0 +1,45 @@
+{
+  "sequences": {
+    "test": [
+      {
+        "type": "key_hold",
+        "key": "S",
+        "seconds": 3.08
+      },
+      {
+        "type": "mouse_move_relative",
+        "dx": -890,
+        "dy": 0,
+        "steps": 12,
+        "step_delay_ms": 16
+      },
+      {
+        "type": "key_hold",
+        "key": "W",
+        "seconds": 1.1
+      },
+      {
+        "type": "wait",
+        "seconds": 0.25
+      },
+      {
+        "type": "mouse_move_relative",
+        "dx": 0,
+        "dy": -120,
+        "steps": 5,
+        "step_delay_ms": 16
+      },
+      {
+        "type": "wait",
+        "seconds": 0.35
+      },
+      {
+        "type": "mouse_move_relative",
+        "dx": 0,
+        "dy": 100,
+        "steps": 5,
+        "step_delay_ms": 16
+      }
+    ]
+  }
+}
