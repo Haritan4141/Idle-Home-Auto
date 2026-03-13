@@ -26,20 +26,24 @@
         "seconds": 1.765
       },
       {
+        "type": "wait",
+        "seconds": 0.18
+      },
+      {
         "type": "vision_center_click",
-        "template": "templates/sword_pickup.png",
-        "anchor_x": 190,
-        "anchor_y": 280,
+        "template": "templates/sword_pickup_body.png",
+        "anchor_x": 95,
+        "anchor_y": 148,
         "search_region": [
           450,
           120,
           700,
           700
         ],
-        "threshold": 0.32,
-        "candidate_threshold": 0.22,
-        "tracking_threshold": 0.2,
-        "centered_fallback_threshold": 0.24,
+        "threshold": 0.55,
+        "candidate_threshold": 0.4,
+        "tracking_threshold": 0.35,
+        "centered_fallback_threshold": 0.48,
         "centered_fallback_retries": 2,
         "tolerance_px": 12,
         "gain_x": 0.9,
@@ -49,10 +53,13 @@
         "post_move_wait_sec": 0.05,
         "pre_click_wait_sec": 0.03,
         "post_click_wait_sec": 0.1,
+        "match_mode": "color",
         "verify_absent_after_click": true,
         "verify_wait_sec": 0.35,
         "absent_threshold": 0.45,
-        "retry_on_verify_failure": true
+        "retry_on_verify_failure": true,
+        "low_score_retry_count": 3,
+        "low_score_retry_delay_sec": 0.12
       },
       {
         "type": "wait",
@@ -109,49 +116,30 @@
       },
       {
         "type": "wait",
-        "seconds": 0.4
+        "seconds": 0.2
       },
       {
         "type": "mouse_move_relative",
-        "dx": 170,
-        "dy": 125,
+        "dx": 250,
+        "dy": 180,
         "steps": 6,
         "step_delay_ms": 16
       },
       {
-        "type": "left_click"
-      },
-      {
         "type": "wait",
-        "seconds": 0.2
+        "seconds": 0.15
       },
       {
-        "type": "key_tap",
-        "key": "ESC"
+        "type": "left_click"
       }
     ],
     "disable_auto_attack": [
       {
-        "type": "key_tap",
-        "key": "R"
-      },
-      {
-        "type": "wait",
-        "seconds": 0.4
-      },
-      {
-        "type": "mouse_move_relative",
-        "dx": 170,
-        "dy": 125,
-        "steps": 6,
-        "step_delay_ms": 16
-      },
-      {
         "type": "left_click"
       },
       {
         "type": "wait",
-        "seconds": 0.2
+        "seconds": 0.15
       },
       {
         "type": "key_tap",
@@ -195,8 +183,8 @@
         "candidate_threshold": 0.55,
         "tracking_threshold": 0.5,
         "centered_fallback_threshold": 0.5,
-        "centered_fallback_retries": 2,
-        "tolerance_px": 14,
+        "centered_fallback_retries": 1,
+        "tolerance_px": 30,
         "gain_x": 0.9,
         "gain_y": 0.9,
         "max_attempts": 10,

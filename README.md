@@ -142,7 +142,9 @@ Examples:
   "verify_absent_after_click": true,
   "verify_wait_sec": 0.35,
   "absent_threshold": 0.45,
-  "retry_on_verify_failure": true
+  "retry_on_verify_failure": true,
+  "low_score_retry_count": 3,
+  "low_score_retry_delay_sec": 0.12
 }
 ```
 
@@ -152,6 +154,11 @@ Examples:
 - If it exists, it is loaded automatically after `idle_home_config.json`.
 - Use it for scratch sequences such as `test` without touching the main config.
 - `sequences`, `timing`, `hotkeys`, `window`, and `points` from the extra file override or extend the base config.
+
+Failure screenshots
+
+- On `BotError`, the bot saves a screenshot and metadata under `failure_captures/`
+- Filenames include timestamp, cycle, sequence, and action for easier triage
 
 Example:
 

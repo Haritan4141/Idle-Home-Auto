@@ -7,5 +7,22 @@ venv/
 
 stage100_next.png
 ascend_confirm.png
+menu_reference.png
+single_icon_*.png
+
+templates/auto_attack_menu_item*.png
+templates/auto_attack_*_glyph.png
+templates/auto_attack_*_icon.png
+templates/auto_attack_*_state.png
+templates/auto_attack_*_tight.png
+templates/auto_attack_idle_*.png
+templates/auto_attack_running_icon.png
+templates/auto_attack_selected_icon.png
+templates/menu_candidate_*.png
+参考画像/単人アイコン*.png
+
+templates/sword_pickup_core.png
+templates/sword_pickup_guard.png
+templates/sword_pickup_hilt.png
 
 failure_captures/

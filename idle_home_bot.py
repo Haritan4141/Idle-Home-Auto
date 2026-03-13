@@ -641,6 +641,9 @@ class IdleHomeBot:
         self.abort_vk = key_to_vk(str(config["hotkeys"]["abort"]))
         self.capture_vk = key_to_vk(str(config["hotkeys"]["capture"]))
         self.template_cache: dict[Path, np.ndarray] = {}
+        self.current_cycle = 0
+        self.current_sequence: str | None = None
+        self.current_action_type: str | None = None
 
     def ensure_abort_not_requested(self) -> None:
         if is_key_down(self.abort_vk):
@@ -669,6 +672,52 @@ class IdleHomeBot:
             return path
         return self.config_dir / path
 
+    def sanitize_label(self, value: str | None) -> str:
+        if not value:
+            return "none"
+        sanitized = "".join(char if char.isalnum() or char in {"-", "_"} else "_" for char in value)
+        sanitized = sanitized.strip("_")
+        return sanitized or "none"
+
+    def write_cv_image(self, path: Path, image: np.ndarray) -> None:
+        success, encoded = cv2.imencode(".png", image)
+        if not success:
+            raise BotError(f"Failed to encode image for {path}.")
+        encoded.tofile(str(path))
+
+    def capture_failure_artifacts(self, error_message: str) -> None:
+        capture_dir = self.resolve_asset_path(str(self.config.get("failure_capture_dir", "failure_captures")))
+        try:
+            hwnd, title = find_window(str(self.config["window"]["title_substring"]))
+            info = get_window_info(hwnd, title)
+            screenshot = capture_client_image(info)
+        except Exception as exc:
+            logging.warning("Failed to capture failure screenshot: %s", exc)
+            return
+
+        capture_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        cycle_label = f"cycle{self.current_cycle:03d}" if self.current_cycle > 0 else "cycle000"
+        sequence_label = self.sanitize_label(self.current_sequence)
+        action_label = self.sanitize_label(self.current_action_type)
+        base_name = f"{timestamp}_{cycle_label}_{sequence_label}_{action_label}"
+        image_path = capture_dir / f"{base_name}.png"
+        meta_path = capture_dir / f"{base_name}.txt"
+
+        try:
+            self.write_cv_image(image_path, screenshot)
+            meta_lines = [
+                f"time={timestamp}",
+                f"cycle={self.current_cycle}",
+                f"sequence={self.current_sequence or ''}",
+                f"action={self.current_action_type or ''}",
+                f"error={error_message}",
+            ]
+            meta_path.write_text("\n".join(meta_lines) + "\n", encoding="utf-8")
+            logging.info("Saved failure artifacts to %s", image_path)
+        except OSError as exc:
+            logging.warning("Failed to save failure artifacts: %s", exc)
+
     def load_template(self, path_value: str) -> np.ndarray:
         path = self.resolve_asset_path(path_value)
         if path not in self.template_cache:
@@ -680,6 +729,7 @@ class IdleHomeBot:
         screenshot: np.ndarray,
         template: np.ndarray,
         search_region: list[int] | None,
+        match_mode: str = "gray",
     ) -> tuple[float, tuple[int, int]]:
         offset_x = 0
         offset_y = 0
@@ -701,9 +751,12 @@ class IdleHomeBot:
         if template.shape[0] > haystack.shape[0] or template.shape[1] > haystack.shape[1]:
             raise BotError("Template image is larger than the search area.")
 
-        haystack_gray = cv2.cvtColor(haystack, cv2.COLOR_BGR2GRAY)
-        template_gray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
-        result = cv2.matchTemplate(haystack_gray, template_gray, cv2.TM_CCOEFF_NORMED)
+        if match_mode == "color":
+            result = cv2.matchTemplate(haystack, template, cv2.TM_CCOEFF_NORMED)
+        else:
+            haystack_gray = cv2.cvtColor(haystack, cv2.COLOR_BGR2GRAY)
+            template_gray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
+            result = cv2.matchTemplate(haystack_gray, template_gray, cv2.TM_CCOEFF_NORMED)
         _, score, _, max_loc = cv2.minMaxLoc(result)
         return score, (offset_x + max_loc[0], offset_y + max_loc[1])
 
@@ -800,6 +853,7 @@ class IdleHomeBot:
 
     def vision_center_click(self, info: WindowInfo, action: dict[str, Any]) -> None:
         template = self.load_template(str(action["template"]))
+        match_mode = str(action.get("match_mode", "gray")).lower()
         anchor_x = int(action.get("anchor_x", template.shape[1] // 2))
         anchor_y = int(action.get("anchor_y", template.shape[0] // 2))
         search_region = action.get("search_region")
@@ -820,13 +874,15 @@ class IdleHomeBot:
         verify_wait_sec = float(action.get("verify_wait_sec", 0.25))
         absent_threshold = float(action.get("absent_threshold", candidate_threshold))
         retry_on_verify_failure = bool(action.get("retry_on_verify_failure", False))
+        low_score_retry_count = max(int(action.get("low_score_retry_count", 0)), 0)
+        low_score_retry_delay_sec = float(action.get("low_score_retry_delay_sec", post_move_wait_sec))
         button = str(action.get("button", "left")).lower()
         locked_on = False
         centered_match_count = 0
 
         for attempt in range(1, max_attempts + 1):
             screenshot = capture_client_image(info)
-            score, top_left = self.find_template(screenshot, template, search_region)
+            score, top_left = self.find_template(screenshot, template, search_region, match_mode)
             target_x = top_left[0] + anchor_x
             target_y = top_left[1] + anchor_y
             error_x = target_x - (info.client_width // 2)
@@ -843,6 +899,18 @@ class IdleHomeBot:
             )
             required_threshold = tracking_threshold if locked_on else candidate_threshold
             if score < required_threshold:
+                if low_score_retry_count > 0:
+                    logging.info(
+                        "Vision low score retry for %s "
+                        "(score=%.3f, threshold=%.3f, remaining=%s).",
+                        action["template"],
+                        score,
+                        required_threshold,
+                        low_score_retry_count,
+                    )
+                    low_score_retry_count -= 1
+                    self.sleep_with_abort(low_score_retry_delay_sec)
+                    continue
                 raise BotError(
                     f"vision_center_click could not find {action['template']} "
                     f"(score={score:.3f}, threshold={required_threshold:.3f}, "
@@ -871,7 +939,12 @@ class IdleHomeBot:
                         if verify_absent_after_click:
                             self.sleep_with_abort(verify_wait_sec)
                             verify_screenshot = capture_client_image(info)
-                            verify_score, verify_top_left = self.find_template(verify_screenshot, template, search_region)
+                            verify_score, verify_top_left = self.find_template(
+                                verify_screenshot,
+                                template,
+                                search_region,
+                                match_mode,
+                            )
                             logging.info(
                                 "Vision post-click %s score=%.3f top_left=(%s,%s) absent_threshold=%.3f",
                                 action["template"],
@@ -910,7 +983,12 @@ class IdleHomeBot:
                 if verify_absent_after_click:
                     self.sleep_with_abort(verify_wait_sec)
                     verify_screenshot = capture_client_image(info)
-                    verify_score, verify_top_left = self.find_template(verify_screenshot, template, search_region)
+                    verify_score, verify_top_left = self.find_template(
+                        verify_screenshot,
+                        template,
+                        search_region,
+                        match_mode,
+                    )
                     logging.info(
                         "Vision post-click %s score=%.3f top_left=(%s,%s) absent_threshold=%.3f",
                         action["template"],
@@ -1074,8 +1152,18 @@ class IdleHomeBot:
             logging.info("Sequence %s is empty.", name)
             return
         logging.info("Sequence %s", name)
-        for action in actions:
-            self.run_action(info, action)
+        previous_sequence = self.current_sequence
+        previous_action_type = self.current_action_type
+        self.current_sequence = name
+        self.current_action_type = None
+        try:
+            for action in actions:
+                self.current_action_type = str(action.get("type", "unknown"))
+                self.run_action(info, action)
+        finally:
+            if sys.exc_info()[0] is None:
+                self.current_sequence = previous_sequence
+                self.current_action_type = previous_action_type
 
     def run_cycle(self) -> None:
         info = ensure_window(self.config, self.allow_size_mismatch)
@@ -1094,6 +1182,7 @@ class IdleHomeBot:
         cycle = 0
         while True:
             cycle += 1
+            self.current_cycle = cycle
             logging.info("Cycle %s start", cycle)
             self.run_cycle()
             logging.info("Cycle %s complete", cycle)
@@ -1108,6 +1197,7 @@ class IdleHomeBot:
             else float(startup_delay_override)
         )
         self.countdown(startup_delay)
+        self.current_cycle = 0
         info = ensure_window(self.config, self.allow_size_mismatch)
         self.run_sequence(name, info)
 
@@ -1202,6 +1292,7 @@ def command_list_windows() -> None:
 def main() -> int:
     args = parse_args()
     configure_logging(args.log_level)
+    bot: IdleHomeBot | None = None
 
     try:
         if args.command == "list-windows":
@@ -1251,6 +1342,8 @@ def main() -> int:
         logging.warning(str(exc))
         return 130
     except BotError as exc:
+        if bot is not None and not getattr(args, "dry_run", False):
+            bot.capture_failure_artifacts(str(exc))
         logging.error(str(exc))
         return 1
     except KeyboardInterrupt:
