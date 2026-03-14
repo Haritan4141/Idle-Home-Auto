@@ -58,6 +58,8 @@
         "verify_wait_sec": 0.35,
         "absent_threshold": 0.45,
         "retry_on_verify_failure": true,
+        "restore_view_after_click": true,
+        "restore_wait_sec": 0.08,
         "low_score_retry_count": 3,
         "low_score_retry_delay_sec": 0.12
       },
@@ -180,9 +182,9 @@
           280
         ],
         "threshold": 0.62,
-        "candidate_threshold": 0.55,
-        "tracking_threshold": 0.5,
-        "centered_fallback_threshold": 0.5,
+        "candidate_threshold": 0.52,
+        "tracking_threshold": 0.48,
+        "centered_fallback_threshold": 0.48,
         "centered_fallback_retries": 1,
         "tolerance_px": 30,
         "gain_x": 0.9,

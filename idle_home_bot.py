@@ -876,9 +876,23 @@ class IdleHomeBot:
         retry_on_verify_failure = bool(action.get("retry_on_verify_failure", False))
         low_score_retry_count = max(int(action.get("low_score_retry_count", 0)), 0)
         low_score_retry_delay_sec = float(action.get("low_score_retry_delay_sec", post_move_wait_sec))
+        restore_view_after_click = bool(action.get("restore_view_after_click", False))
+        restore_wait_sec = float(action.get("restore_wait_sec", post_move_wait_sec))
         button = str(action.get("button", "left")).lower()
         locked_on = False
         centered_match_count = 0
+        total_adjust_dx = 0
+        total_adjust_dy = 0
+
+        def restore_view() -> None:
+            if not restore_view_after_click:
+                return
+            if total_adjust_dx == 0 and total_adjust_dy == 0:
+                return
+            logging.info("Vision restore -> dx=%s dy=%s", -total_adjust_dx, -total_adjust_dy)
+            if not self.dry_run:
+                move_mouse_relative(-total_adjust_dx, -total_adjust_dy)
+            self.sleep_with_abort(restore_wait_sec)
 
         for attempt in range(1, max_attempts + 1):
             screenshot = capture_client_image(info)
@@ -966,6 +980,7 @@ class IdleHomeBot:
                                     f"(score={verify_score:.3f}, absent_threshold={absent_threshold:.3f}, "
                                     f"top_left=({verify_top_left[0]},{verify_top_left[1]}))."
                                 )
+                        restore_view()
                         return
                     logging.info(
                         "Vision centered but below click threshold for %s "
@@ -1010,6 +1025,7 @@ class IdleHomeBot:
                             f"(score={verify_score:.3f}, absent_threshold={absent_threshold:.3f}, "
                             f"top_left=({verify_top_left[0]},{verify_top_left[1]}))."
                         )
+                restore_view()
                 return
             centered_match_count = 0
 
@@ -1025,6 +1041,8 @@ class IdleHomeBot:
             logging.info("Vision adjust -> dx=%s dy=%s", move_dx, move_dy)
             if not self.dry_run:
                 move_mouse_relative(move_dx, move_dy)
+            total_adjust_dx += move_dx
+            total_adjust_dy += move_dy
             self.sleep_with_abort(post_move_wait_sec)
 
         raise BotError(f"vision_center_click failed to center {action['template']} in {max_attempts} attempts.")
