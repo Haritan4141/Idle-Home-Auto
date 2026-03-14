@@ -1,9 +1,13 @@
 __pycache__/
 *.py[cod]
 *.log
+*.spec
 
 .venv/
 venv/
+build/
+dist/
+release/
 
 stage100_next.png
 ascend_confirm.png

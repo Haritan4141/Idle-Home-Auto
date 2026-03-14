@@ -633,11 +633,13 @@ class IdleHomeBot:
         config_dir: Path,
         allow_size_mismatch: bool,
         dry_run: bool,
+        abort_event: Any | None = None,
     ) -> None:
         self.config = config
         self.config_dir = config_dir
         self.allow_size_mismatch = allow_size_mismatch
         self.dry_run = dry_run
+        self.abort_event = abort_event
         self.abort_vk = key_to_vk(str(config["hotkeys"]["abort"]))
         self.capture_vk = key_to_vk(str(config["hotkeys"]["capture"]))
         self.template_cache: dict[Path, np.ndarray] = {}
@@ -646,6 +648,8 @@ class IdleHomeBot:
         self.current_action_type: str | None = None
 
     def ensure_abort_not_requested(self) -> None:
+        if self.abort_event is not None and self.abort_event.is_set():
+            raise AbortRequested("Abort requested by controller.")
         if is_key_down(self.abort_vk):
             raise AbortRequested(
                 f"Abort hotkey {self.config['hotkeys']['abort']} pressed."

@@ -82,6 +82,28 @@ Run the loop:
 python .\idle_home_bot.py run
 ```
 
+Run the tuning GUI:
+
+```powershell
+python .\idle_home_gui.py
+```
+
+Build a Windows release package:
+
+```powershell
+.\build_release.bat 0.0.1
+```
+
+This creates:
+
+- `release\IdleHomeBot-v0.0.1\`
+- `release\IdleHomeBot-v0.0.1.zip`
+
+After the build, both of these should be runnable because the config and templates are copied into them:
+
+- `dist\IdleHomeBotGUI\IdleHomeBotGUI.exe`
+- `release\IdleHomeBot-v0.0.1\IdleHomeBotGUI.exe`
+
 ## Calibration workflow
 
 Use this only for true cursor-based UI. If every capture comes back around `800,450` on a `1600x900` client, that is expected for center-locked desktop input, and you should switch to relative mouse actions instead of point capture.
@@ -196,6 +218,11 @@ python .\idle_home_bot.py run --once --startup-delay 3
 ## Notes
 
 - The sample config is only a starting point. Movement timings and click targets will need adjustment for your avatar, camera setup, and world routing.
+- `idle_home_gui.py` exposes the main timing and movement values that usually need tuning on another PC.
+- In the GUI, `F1` starts the loop and `F2` requests a stop even while `VRChat` is focused.
+- The GUI also includes one-click buttons for `pickup_sword`, `move_to_combat_position`, `enable_auto_attack`, and `ascend` so you can tune one section at a time.
+- The GUI saves to `idle_home_config.json` only when you press `Save`.
+- The release build is `onedir`, not `onefile`, so `idle_home_config.json` and `templates\` remain editable next to the EXE.
 - If the desktop cursor appears stuck at the center during calibration, stop using point capture for that part of the flow. Replace it with `mouse_move_relative` and center-based clicks.
 - The runner stops if the VRChat client area does not match `1600x900`. Use `--allow-size-mismatch` only when intentionally recalibrating or testing another setup.
 - The tool assumes the target window title contains `VRChat`.
