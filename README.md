@@ -135,6 +135,7 @@ Each sequence is a list of actions. Supported action types:
 - `mouse_drag_relative`
 - `mouse_wheel`
 - `vision_center_click`
+- `vision_wait_absent`
 - `pattern_click`
 - `left_click`
 - `right_click`
@@ -149,6 +150,7 @@ Examples:
 { "type": "mouse_drag_relative", "button": "middle", "dx": 0, "dy": 540, "steps": 16, "step_delay_ms": 16 }
 { "type": "mouse_wheel", "delta": 120, "repeat": 10, "pause_sec": 0.02 }
 { "type": "vision_center_click", "template": "templates/sword_pickup.png", "anchor_x": 190, "anchor_y": 280 }
+{ "type": "vision_wait_absent", "template": "templates/ascend_confirm_button.png", "absence_threshold": 0.55, "initial_wait_sec": 5.0 }
 { "type": "pattern_click", "offsets": [[0, 0], [20, 0], [-20, 0], [0, 20], [0, -20]], "pause_sec": 0.03 }
 { "type": "left_click" }
 { "type": "key_tap", "key": "R" }
@@ -179,8 +181,10 @@ Examples:
 
 Failure screenshots
 
-- On `BotError`, the bot saves a screenshot and metadata under `failure_captures/`
+- On `BotError`, the bot saves a screenshot, metadata, the current cycle log, a recent log tail, and recent sequence-boundary screenshots under `failure_captures/`
 - Filenames include timestamp, cycle, sequence, and action for easier triage
+- The `.log` file is a per-cycle log snapshot, and `.recent.log` includes a rolling recent tail
+- The extra `_snap*.png` files show recent `before_*` / `after_*` sequence states, which is usually more useful than manually recording video
 
 Example:
 

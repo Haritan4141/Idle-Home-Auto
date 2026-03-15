@@ -8,6 +8,7 @@ venv/
 build/
 dist/
 release/
+sub-PC/
 
 stage100_next.png
 ascend_confirm.png

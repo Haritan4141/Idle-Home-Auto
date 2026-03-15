@@ -253,6 +253,38 @@ def configure_logging(level_name: str) -> None:
     )
 
 
+class InMemoryLogHandler(logging.Handler):
+    def __init__(self, max_lines: int) -> None:
+        super().__init__(level=logging.INFO)
+        self.max_lines = max(int(max_lines), 100)
+        self.lines: list[str] = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        message = self.format(record)
+        self.acquire()
+        try:
+            self.lines.append(message)
+            overflow = len(self.lines) - self.max_lines
+            if overflow > 0:
+                del self.lines[:overflow]
+        finally:
+            self.release()
+
+    def clear(self) -> None:
+        self.acquire()
+        try:
+            self.lines.clear()
+        finally:
+            self.release()
+
+    def snapshot(self) -> list[str]:
+        self.acquire()
+        try:
+            return list(self.lines)
+        finally:
+            self.release()
+
+
 def load_config(path: Path) -> dict[str, Any]:
     if not path.exists():
         raise BotError(f"Config file not found: {path}")
@@ -507,6 +539,7 @@ def validate_action(action: dict[str, Any], points: dict[str, Any]) -> None:
         "mouse_drag_relative",
         "mouse_wheel",
         "vision_center_click",
+        "vision_wait_absent",
         "pattern_click",
         "left_click",
         "right_click",
@@ -543,6 +576,20 @@ def validate_action(action: dict[str, Any], points: dict[str, Any]) -> None:
         if search_region is not None:
             if not isinstance(search_region, list) or len(search_region) != 4:
                 raise BotError("vision_center_click search_region must be [x, y, width, height].")
+        return
+
+    if action_type == "vision_wait_absent":
+        if "template" not in action:
+            raise BotError("vision_wait_absent action requires template.")
+        search_region = action.get("search_region")
+        if search_region is not None:
+            if not isinstance(search_region, list) or len(search_region) != 4:
+                raise BotError("vision_wait_absent search_region must be [x, y, width, height].")
+        if bool(action.get("retry_center_click_if_visible", False)):
+            if "anchor_x" not in action or "anchor_y" not in action:
+                raise BotError(
+                    "vision_wait_absent with retry_center_click_if_visible requires anchor_x and anchor_y."
+                )
         return
 
     if action_type == "pattern_click":
@@ -646,6 +693,51 @@ class IdleHomeBot:
         self.current_cycle = 0
         self.current_sequence: str | None = None
         self.current_action_type: str | None = None
+        self.failure_log_handler = InMemoryLogHandler(
+            max_lines=int(self.config.get("failure_cycle_log_max_lines", 500))
+        )
+        self.failure_log_handler.setFormatter(
+            logging.Formatter("%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
+        )
+        self.recent_log_handler = InMemoryLogHandler(
+            max_lines=int(self.config.get("failure_recent_log_max_lines", 1000))
+        )
+        self.recent_log_handler.setFormatter(
+            logging.Formatter("%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
+        )
+        self.recent_snapshot_limit = max(int(self.config.get("failure_recent_snapshot_count", 8)), 0)
+        self.recent_snapshots: list[dict[str, Any]] = []
+        logging.getLogger().addHandler(self.failure_log_handler)
+        logging.getLogger().addHandler(self.recent_log_handler)
+
+    def close(self) -> None:
+        logging.getLogger().removeHandler(self.failure_log_handler)
+        self.failure_log_handler.close()
+        logging.getLogger().removeHandler(self.recent_log_handler)
+        self.recent_log_handler.close()
+
+    def record_state_snapshot(self, label: str) -> None:
+        if self.dry_run or self.recent_snapshot_limit <= 0:
+            return
+        try:
+            hwnd, title = find_window(str(self.config["window"]["title_substring"]))
+            info = get_window_info(hwnd, title)
+            screenshot = capture_client_image(info)
+        except Exception:
+            return
+
+        self.recent_snapshots.append(
+            {
+                "label": label,
+                "cycle": self.current_cycle,
+                "sequence": self.current_sequence,
+                "action": self.current_action_type,
+                "image": screenshot,
+            }
+        )
+        overflow = len(self.recent_snapshots) - self.recent_snapshot_limit
+        if overflow > 0:
+            del self.recent_snapshots[:overflow]
 
     def ensure_abort_not_requested(self) -> None:
         if self.abort_event is not None and self.abort_event.is_set():
@@ -691,13 +783,13 @@ class IdleHomeBot:
 
     def capture_failure_artifacts(self, error_message: str) -> None:
         capture_dir = self.resolve_asset_path(str(self.config.get("failure_capture_dir", "failure_captures")))
+        screenshot: np.ndarray | None = None
         try:
             hwnd, title = find_window(str(self.config["window"]["title_substring"]))
             info = get_window_info(hwnd, title)
             screenshot = capture_client_image(info)
         except Exception as exc:
             logging.warning("Failed to capture failure screenshot: %s", exc)
-            return
 
         capture_dir.mkdir(parents=True, exist_ok=True)
         timestamp = time.strftime("%Y%m%d-%H%M%S")
@@ -707,9 +799,12 @@ class IdleHomeBot:
         base_name = f"{timestamp}_{cycle_label}_{sequence_label}_{action_label}"
         image_path = capture_dir / f"{base_name}.png"
         meta_path = capture_dir / f"{base_name}.txt"
+        cycle_log_path = capture_dir / f"{base_name}.log"
+        recent_log_path = capture_dir / f"{base_name}.recent.log"
 
         try:
-            self.write_cv_image(image_path, screenshot)
+            if screenshot is not None:
+                self.write_cv_image(image_path, screenshot)
             meta_lines = [
                 f"time={timestamp}",
                 f"cycle={self.current_cycle}",
@@ -718,7 +813,24 @@ class IdleHomeBot:
                 f"error={error_message}",
             ]
             meta_path.write_text("\n".join(meta_lines) + "\n", encoding="utf-8")
-            logging.info("Saved failure artifacts to %s", image_path)
+            cycle_log_lines = self.failure_log_handler.snapshot()
+            if cycle_log_lines:
+                cycle_log_path.write_text("\n".join(cycle_log_lines) + "\n", encoding="utf-8")
+            recent_log_lines = self.recent_log_handler.snapshot()
+            if recent_log_lines:
+                recent_log_path.write_text("\n".join(recent_log_lines) + "\n", encoding="utf-8")
+            for index, snapshot in enumerate(self.recent_snapshots, start=1):
+                snapshot_cycle = int(snapshot.get("cycle", 0))
+                snapshot_sequence = self.sanitize_label(snapshot.get("sequence"))
+                snapshot_label = self.sanitize_label(str(snapshot.get("label", f"snapshot_{index:02d}")))
+                snapshot_path = capture_dir / (
+                    f"{base_name}_snap{index:02d}_cycle{snapshot_cycle:03d}_{snapshot_sequence}_{snapshot_label}.png"
+                )
+                self.write_cv_image(snapshot_path, snapshot["image"])
+            if screenshot is not None:
+                logging.info("Saved failure artifacts to %s", image_path)
+            else:
+                logging.info("Saved failure artifacts to %s", meta_path)
         except OSError as exc:
             logging.warning("Failed to save failure artifacts: %s", exc)
 
@@ -1051,6 +1163,72 @@ class IdleHomeBot:
 
         raise BotError(f"vision_center_click failed to center {action['template']} in {max_attempts} attempts.")
 
+    def vision_wait_absent(self, info: WindowInfo, action: dict[str, Any]) -> None:
+        template_path = str(action["template"])
+        template = self.load_template(template_path)
+        search_region = action.get("search_region")
+        match_mode = str(action.get("match_mode", "gray")).lower()
+        absence_threshold = float(action.get("absence_threshold", action.get("threshold", 0.5)))
+        initial_wait_sec = float(action.get("initial_wait_sec", 0.0))
+        timeout_sec = float(action.get("timeout_sec", 10.0))
+        poll_sec = float(action.get("poll_sec", 0.25))
+        retry_center_click_if_visible = bool(action.get("retry_center_click_if_visible", False))
+        retry_click_limit = max(int(action.get("retry_click_limit", 0)), 0)
+        retry_click_interval_sec = float(action.get("retry_click_interval_sec", 1.0))
+
+        if initial_wait_sec > 0:
+            logging.info("Vision wait absent initial wait %.2fs for %s", initial_wait_sec, template_path)
+            self.sleep_with_abort(initial_wait_sec)
+
+        deadline = time.monotonic() + max(timeout_sec, 0.0)
+        retry_clicks_used = 0
+        next_retry_time = time.monotonic()
+
+        while True:
+            self.ensure_abort_not_requested()
+            screenshot = capture_client_image(info)
+            score, top_left = self.find_template(screenshot, template, search_region, match_mode)
+            logging.info(
+                "Vision wait absent %s score=%.3f top_left=(%s,%s) absence_threshold=%.3f",
+                template_path,
+                score,
+                top_left[0],
+                top_left[1],
+                absence_threshold,
+            )
+            if score < absence_threshold:
+                return
+
+            now = time.monotonic()
+            if (
+                retry_center_click_if_visible
+                and retry_clicks_used < retry_click_limit
+                and now >= next_retry_time
+            ):
+                retry_clicks_used += 1
+                next_retry_time = now + max(retry_click_interval_sec, 0.0)
+                logging.info(
+                    "Vision wait absent retry click for %s (%s/%s).",
+                    template_path,
+                    retry_clicks_used,
+                    retry_click_limit,
+                )
+                click_action = dict(action)
+                click_action["type"] = "vision_center_click"
+                if "click_threshold" in action:
+                    click_action["threshold"] = float(action["click_threshold"])
+                self.vision_center_click(info, click_action)
+                continue
+
+            remaining = deadline - now
+            if remaining <= 0:
+                raise BotError(
+                    f"vision_wait_absent timed out for {template_path} "
+                    f"(score={score:.3f}, absence_threshold={absence_threshold:.3f}, "
+                    f"top_left=({top_left[0]},{top_left[1]}), retries={retry_clicks_used}/{retry_click_limit})."
+                )
+            self.sleep_with_abort(min(max(poll_sec, 0.05), remaining))
+
     def pattern_click(self, action: dict[str, Any]) -> None:
         button = str(action.get("button", "left")).lower()
         if button not in {"left", "right"}:
@@ -1122,6 +1300,10 @@ class IdleHomeBot:
             self.vision_center_click(info, action)
             return
 
+        if action_type == "vision_wait_absent":
+            self.vision_wait_absent(info, action)
+            return
+
         if action_type == "pattern_click":
             self.pattern_click(action)
             return
@@ -1178,10 +1360,12 @@ class IdleHomeBot:
         previous_action_type = self.current_action_type
         self.current_sequence = name
         self.current_action_type = None
+        self.record_state_snapshot(f"before_{name}")
         try:
             for action in actions:
                 self.current_action_type = str(action.get("type", "unknown"))
                 self.run_action(info, action)
+            self.record_state_snapshot(f"after_{name}")
         finally:
             if sys.exc_info()[0] is None:
                 self.current_sequence = previous_sequence
@@ -1205,7 +1389,9 @@ class IdleHomeBot:
         while True:
             cycle += 1
             self.current_cycle = cycle
+            self.failure_log_handler.clear()
             logging.info("Cycle %s start", cycle)
+            self.record_state_snapshot("cycle_start")
             self.run_cycle()
             logging.info("Cycle %s complete", cycle)
             if once:
@@ -1218,8 +1404,10 @@ class IdleHomeBot:
             if startup_delay_override is None
             else float(startup_delay_override)
         )
+        self.failure_log_handler.clear()
         self.countdown(startup_delay)
         self.current_cycle = 0
+        self.record_state_snapshot("sequence_run_start")
         info = ensure_window(self.config, self.allow_size_mismatch)
         self.run_sequence(name, info)
 
@@ -1235,7 +1423,9 @@ class IdleHomeBot:
             if startup_delay_override is None
             else float(startup_delay_override)
         )
+        self.failure_log_handler.clear()
         self.countdown(startup_delay)
+        self.record_state_snapshot("wheel_run_start")
         ensure_window(self.config, self.allow_size_mismatch)
         action = {
             "type": "mouse_wheel",
@@ -1371,6 +1561,9 @@ def main() -> int:
     except KeyboardInterrupt:
         logging.warning("Interrupted by user.")
         return 130
+    finally:
+        if bot is not None:
+            bot.close()
 
 
 if __name__ == "__main__":

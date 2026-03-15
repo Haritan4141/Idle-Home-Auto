@@ -2,6 +2,7 @@ import copy
 import ctypes
 import logging
 import queue
+import re
 import sys
 import threading
 import tkinter as tk
@@ -14,10 +15,11 @@ from typing import Any
 import idle_home_bot as botlib
 
 
-APP_VERSION = "0.0.1"
+APP_VERSION = "0.0.2"
 MOD_NOREPEAT = 0x4000
 WM_HOTKEY = 0x0312
 WM_QUIT = 0x0012
+CYCLE_START_RE = re.compile(r"\bCycle (\d+) start\b")
 
 user32 = ctypes.windll.user32
 kernel32 = ctypes.windll.kernel32
@@ -168,6 +170,7 @@ class IdleHomeGuiApp:
         self.hotkeys = GlobalHotkeyListener(self.event_queue)
         self.log_handler = TextQueueHandler(self.log_queue)
         self.status_var = tk.StringVar(value="Idle")
+        self.current_cycle_var = tk.StringVar(value="-")
         self.allow_size_mismatch_var = tk.BooleanVar(value=False)
 
         self.root.title(f"Idle Home Bot v{APP_VERSION}")
@@ -212,7 +215,11 @@ class IdleHomeGuiApp:
             variable=self.allow_size_mismatch_var,
         ).pack(side="right")
 
-        ttk.Label(top, textvariable=self.status_var).pack(fill="x", pady=(8, 0))
+        status_row = ttk.Frame(top)
+        status_row.pack(fill="x", pady=(8, 0))
+        ttk.Label(status_row, textvariable=self.status_var).pack(side="left")
+        ttk.Label(status_row, text="Current Cycle:").pack(side="right", padx=(0, 6))
+        ttk.Label(status_row, textvariable=self.current_cycle_var).pack(side="right")
         ttk.Label(top, text=f"Config: {self.config_path}").pack(fill="x", pady=(2, 8))
 
         main = ttk.Panedwindow(top, orient="horizontal")
@@ -276,6 +283,7 @@ class IdleHomeGuiApp:
         self.stop_event = threading.Event()
         self.running_mode = mode if sequence_name is None else f"{mode}:{sequence_name}"
         self.status_var.set(f"Running: {self.running_mode}")
+        self.current_cycle_var.set("-")
         self.worker_thread = threading.Thread(
             target=self.worker_main,
             args=(config, mode, sequence_name),
@@ -316,6 +324,7 @@ class IdleHomeGuiApp:
         except Exception:
             logging.exception("Unexpected GUI runner error.")
         finally:
+            bot.close()
             self.event_queue.put(("runner", "finished"))
 
     def process_queues(self) -> None:
@@ -341,6 +350,7 @@ class IdleHomeGuiApp:
                     self.request_stop()
             elif event_type == "runner":
                 self.status_var.set("Idle")
+                self.current_cycle_var.set("-")
                 self.stop_event = None
                 self.worker_thread = None
                 self.running_mode = None
@@ -351,6 +361,9 @@ class IdleHomeGuiApp:
         self.root.after(100, self.process_queues)
 
     def append_log(self, message: str) -> None:
+        match = CYCLE_START_RE.search(message)
+        if match:
+            self.current_cycle_var.set(match.group(1))
         self.log_text.configure(state="normal")
         self.log_text.insert("end", message + "\n")
         self.log_text.see("end")
