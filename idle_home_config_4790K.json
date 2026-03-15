@@ -11,7 +11,7 @@
   "timing": {
     "startup_delay_sec": 3.0,
     "combat_duration_sec": 50.0,
-    "after_cycle_wait_sec": 5.0
+    "after_cycle_wait_sec": 8.0
   },
   "sequences": {
     "pickup_sword": [
@@ -239,10 +239,10 @@
         "anchor_x": 210,
         "anchor_y": 90,
         "search_region": [
-          420,
           280,
+          340,
           520,
-          260
+          220
         ],
         "match_mode": "color",
         "absence_threshold": 0.35,
@@ -272,23 +272,23 @@
         "anchor_x": 300,
         "anchor_y": 68,
         "search_region": [
-          260,
-          140,
-          840,
-          260
+          0,
+          340,
+          1100,
+          220
         ],
         "match_mode": "color",
-        "absence_threshold": 0.4,
+        "absence_threshold": 0.15,
         "initial_wait_sec": 0.2,
         "timeout_sec": 8.0,
         "poll_sec": 0.35,
         "retry_center_click_if_visible": true,
         "retry_click_limit": 2,
         "retry_click_interval_sec": 1.0,
-        "click_threshold": 0.4,
-        "candidate_threshold": 0.34,
-        "tracking_threshold": 0.3,
-        "centered_fallback_threshold": 0.3,
+        "click_threshold": 0.18,
+        "candidate_threshold": 0.15,
+        "tracking_threshold": 0.12,
+        "centered_fallback_threshold": 0.12,
         "centered_fallback_retries": 1,
         "tolerance_px": 35,
         "gain_x": 0.9,
@@ -305,10 +305,10 @@
         "anchor_x": 210,
         "anchor_y": 90,
         "search_region": [
-          420,
           280,
+          340,
           520,
-          260
+          220
         ],
         "match_mode": "color",
         "absence_threshold": 0.35,
@@ -338,13 +338,13 @@
         "anchor_x": 300,
         "anchor_y": 68,
         "search_region": [
-          260,
-          140,
-          840,
-          260
+          0,
+          340,
+          1100,
+          220
         ],
         "match_mode": "color",
-        "absence_threshold": 0.4,
+        "absence_threshold": 0.15,
         "initial_wait_sec": 0.5,
         "timeout_sec": 10.0,
         "poll_sec": 0.35
