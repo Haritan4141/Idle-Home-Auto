@@ -9,7 +9,7 @@ import tkinter as tk
 from ctypes import wintypes
 from dataclasses import dataclass
 from pathlib import Path
-from tkinter import messagebox, ttk
+from tkinter import filedialog, messagebox, ttk
 from typing import Any
 
 import idle_home_bot as botlib
@@ -159,6 +159,7 @@ class IdleHomeGuiApp:
 
     def __init__(self, root: tk.Tk, config_path: Path) -> None:
         self.root = root
+        self.default_config_path = config_path
         self.config_path = config_path
         self.base_config = botlib.load_config(config_path)
         self.field_vars: dict[FieldSpec, tk.StringVar] = {}
@@ -171,6 +172,7 @@ class IdleHomeGuiApp:
         self.log_handler = TextQueueHandler(self.log_queue)
         self.status_var = tk.StringVar(value="Idle")
         self.current_cycle_var = tk.StringVar(value="-")
+        self.config_label_var = tk.StringVar()
         self.allow_size_mismatch_var = tk.BooleanVar(value=False)
 
         self.root.title(f"Idle Home Bot v{APP_VERSION}")
@@ -180,6 +182,7 @@ class IdleHomeGuiApp:
 
         self.configure_logging()
         self.build_ui()
+        self.refresh_config_label()
         self.load_fields_from_config(self.base_config)
         self.hotkeys.start()
         self.root.after(100, self.process_queues)
@@ -200,6 +203,8 @@ class IdleHomeGuiApp:
         controls = ttk.Frame(top)
         controls.pack(fill="x")
 
+        ttk.Button(controls, text="Open Config...", command=self.select_config).pack(side="left")
+        ttk.Button(controls, text="Use Default", command=self.use_default_config).pack(side="left", padx=(8, 0))
         ttk.Button(controls, text="Reload", command=self.reload_from_disk).pack(side="left")
         ttk.Button(controls, text="Save", command=self.save_to_disk).pack(side="left", padx=(8, 0))
         ttk.Button(controls, text="Run Loop (F1)", command=lambda: self.start_runner("loop")).pack(side="left", padx=(16, 0))
@@ -220,7 +225,7 @@ class IdleHomeGuiApp:
         ttk.Label(status_row, textvariable=self.status_var).pack(side="left")
         ttk.Label(status_row, text="Current Cycle:").pack(side="right", padx=(0, 6))
         ttk.Label(status_row, textvariable=self.current_cycle_var).pack(side="right")
-        ttk.Label(top, text=f"Config: {self.config_path}").pack(fill="x", pady=(2, 8))
+        ttk.Label(top, textvariable=self.config_label_var).pack(fill="x", pady=(2, 8))
 
         main = ttk.Panedwindow(top, orient="horizontal")
         main.pack(fill="both", expand=True)
@@ -247,13 +252,56 @@ class IdleHomeGuiApp:
         self.log_text = tk.Text(right, wrap="word", height=30, state="disabled")
         self.log_text.pack(fill="both", expand=True)
 
+    def refresh_config_label(self) -> None:
+        self.config_label_var.set(f"Config: {self.config_path}")
+
+    def load_selected_config(self, path: Path) -> None:
+        self.base_config = botlib.load_config(path)
+        self.config_path = path
+        self.refresh_config_label()
+        self.load_fields_from_config(self.base_config)
+
+    def select_config(self) -> None:
+        if self.is_running():
+            messagebox.showwarning("Busy", "Stop the runner before switching the config.")
+            return
+        selected = filedialog.askopenfilename(
+            title="Open Config",
+            initialdir=str(self.config_path.parent),
+            initialfile=self.config_path.name,
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+        )
+        if not selected:
+            return
+        path = Path(selected)
+        try:
+            self.load_selected_config(path)
+        except Exception as exc:
+            messagebox.showerror("Open config failed", str(exc))
+            logging.error("Open config failed: %s", exc)
+            return
+        logging.info("Loaded %s", self.config_path)
+
+    def use_default_config(self) -> None:
+        if self.is_running():
+            messagebox.showwarning("Busy", "Stop the runner before switching the config.")
+            return
+        if self.config_path == self.default_config_path:
+            return
+        try:
+            self.load_selected_config(self.default_config_path)
+        except Exception as exc:
+            messagebox.showerror("Load default failed", str(exc))
+            logging.error("Load default failed: %s", exc)
+            return
+        logging.info("Loaded %s", self.config_path)
+
     def reload_from_disk(self) -> None:
         if self.is_running():
             messagebox.showwarning("Busy", "Stop the runner before reloading the config.")
             return
-        self.base_config = botlib.load_config(self.config_path)
-        self.load_fields_from_config(self.base_config)
-        logging.info("Reloaded %s", self.config_path.name)
+        self.load_selected_config(self.config_path)
+        logging.info("Reloaded %s", self.config_path)
 
     def save_to_disk(self) -> None:
         try:
@@ -263,7 +311,8 @@ class IdleHomeGuiApp:
             messagebox.showerror("Save failed", str(exc))
             logging.error("Save failed: %s", exc)
             return
-        logging.info("Saved %s", self.config_path.name)
+        self.refresh_config_label()
+        logging.info("Saved %s", self.config_path)
 
     def is_running(self) -> bool:
         return self.worker_thread is not None and self.worker_thread.is_alive()
@@ -415,7 +464,13 @@ def main() -> int:
         base_dir = Path(sys.executable).resolve().parent
     else:
         base_dir = Path(__file__).resolve().parent
-    config_path = base_dir / "idle_home_config.json"
+    if len(sys.argv) >= 2 and sys.argv[1].strip():
+        requested = Path(sys.argv[1].strip())
+        if not requested.is_absolute():
+            requested = base_dir / requested
+        config_path = requested.resolve()
+    else:
+        config_path = base_dir / "idle_home_config.json"
     IdleHomeGuiApp(root, config_path)
     root.mainloop()
     return 0

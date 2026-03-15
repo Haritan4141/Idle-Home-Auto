@@ -20,7 +20,7 @@ if "%PY_CMD%"=="" (
   exit /b 1
 )
 
-%PY_CMD% idle_home_gui.py
+%PY_CMD% idle_home_gui.py %*
 set "EXIT_CODE=%ERRORLEVEL%"
 if not "%EXIT_CODE%"=="0" (
   echo.

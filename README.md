@@ -95,6 +95,12 @@ Or double-click:
 launch_gui.bat
 ```
 
+Or open a specific config file:
+
+```powershell
+.\launch_gui.bat idle_home_config_4790K.json
+```
+
 Build a Windows release package:
 
 ```powershell
@@ -232,7 +238,9 @@ python .\idle_home_bot.py run --once --startup-delay 3
 - `idle_home_gui.py` exposes the main timing and movement values that usually need tuning on another PC.
 - In the GUI, `F1` starts the loop and `F2` requests a stop even while `VRChat` is focused.
 - The GUI also includes one-click buttons for `pickup_sword`, `move_to_combat_position`, `enable_auto_attack`, and `ascend` so you can tune one section at a time.
-- The GUI saves to `idle_home_config.json` only when you press `Save`.
+- The GUI starts with `idle_home_config.json` by default, and `Open Config...` can switch to another JSON file for load/save/run.
+- `launch_gui.bat` also accepts an optional config path and opens the GUI with that file already selected.
+- The GUI saves to the currently selected JSON file only when you press `Save`.
 - The release build is `onedir`, not `onefile`, so `idle_home_config.json` and `templates\` remain editable next to the EXE.
 - If the desktop cursor appears stuck at the center during calibration, stop using point capture for that part of the flow. Replace it with `mouse_move_relative` and center-based clicks.
 - The runner stops if the VRChat client area does not match `1600x900`. Use `--allow-size-mismatch` only when intentionally recalibrating or testing another setup.

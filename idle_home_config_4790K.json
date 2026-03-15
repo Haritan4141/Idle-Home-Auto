@@ -1,0 +1,350 @@
+{
+  "window": {
+    "title_substring": "VRChat",
+    "client_width": 1600,
+    "client_height": 900
+  },
+  "hotkeys": {
+    "abort": "F12",
+    "capture": "F8"
+  },
+  "timing": {
+    "startup_delay_sec": 3.0,
+    "combat_duration_sec": 50.0,
+    "after_cycle_wait_sec": 5.0
+  },
+  "sequences": {
+    "pickup_sword": [
+      {
+        "type": "key_hold",
+        "key": "W",
+        "seconds": 0.3
+      },
+      {
+        "type": "key_hold",
+        "key": "D",
+        "seconds": 1.765
+      },
+      {
+        "type": "wait",
+        "seconds": 0.18
+      },
+      {
+        "type": "vision_center_click",
+        "template": "templates/sword_pickup_body.png",
+        "anchor_x": 95,
+        "anchor_y": 148,
+        "search_region": [
+          450,
+          120,
+          700,
+          700
+        ],
+        "threshold": 0.55,
+        "candidate_threshold": 0.4,
+        "tracking_threshold": 0.35,
+        "centered_fallback_threshold": 0.48,
+        "centered_fallback_retries": 2,
+        "tolerance_px": 12,
+        "gain_x": 0.9,
+        "gain_y": 0.9,
+        "max_attempts": 12,
+        "max_step_px": 100,
+        "post_move_wait_sec": 0.05,
+        "pre_click_wait_sec": 0.03,
+        "post_click_wait_sec": 0.1,
+        "match_mode": "color",
+        "verify_absent_after_click": true,
+        "verify_wait_sec": 0.35,
+        "absent_threshold": 0.45,
+        "retry_on_verify_failure": true,
+        "restore_view_after_click": true,
+        "restore_wait_sec": 0.08,
+        "low_score_retry_count": 3,
+        "low_score_retry_delay_sec": 0.12
+      },
+      {
+        "type": "wait",
+        "seconds": 10.0
+      },
+      {
+        "type": "mouse_wheel",
+        "delta": 120,
+        "repeat": 100,
+        "pause_sec": 0.02
+      },
+      {
+        "type": "wait",
+        "seconds": 0.5
+      },
+      {
+        "type": "mouse_drag_relative",
+        "button": "middle",
+        "dx": 0,
+        "dy": 250,
+        "steps": 50,
+        "step_delay_ms": 16,
+        "hold_before_move_sec": 0.08,
+        "release_wait_sec": 0.08
+      },
+      {
+        "type": "wait",
+        "seconds": 0.5
+      }
+    ],
+    "move_to_combat_position": [
+      {
+        "type": "key_hold",
+        "key": "S",
+        "seconds": 1.0
+      },
+      {
+        "type": "mouse_move_relative",
+        "dx": 890,
+        "dy": 0,
+        "steps": 12,
+        "step_delay_ms": 16
+      },
+      {
+        "type": "key_hold",
+        "key": "W",
+        "seconds": 3.9
+      }
+    ],
+    "enable_auto_attack": [
+      {
+        "type": "key_tap",
+        "key": "R"
+      },
+      {
+        "type": "wait",
+        "seconds": 0.2
+      },
+      {
+        "type": "mouse_move_relative",
+        "dx": 250,
+        "dy": 180,
+        "steps": 6,
+        "step_delay_ms": 16
+      },
+      {
+        "type": "wait",
+        "seconds": 0.15
+      },
+      {
+        "type": "left_click"
+      }
+    ],
+    "disable_auto_attack": [
+      {
+        "type": "left_click"
+      },
+      {
+        "type": "wait",
+        "seconds": 0.15
+      },
+      {
+        "type": "key_tap",
+        "key": "ESC"
+      },
+      {
+        "type": "wait",
+        "seconds": 0.3
+      }
+    ],
+    "ascend": [
+      {
+        "type": "key_hold",
+        "key": "S",
+        "seconds": 2.85
+      },
+      {
+        "type": "mouse_move_relative",
+        "dx": -890,
+        "dy": 0,
+        "steps": 12,
+        "step_delay_ms": 16
+      },
+      {
+        "type": "key_hold",
+        "key": "W",
+        "seconds": 1.1
+      },
+      {
+        "type": "wait",
+        "seconds": 0.35
+      },
+      {
+        "type": "vision_center_click",
+        "template": "templates/ascend_next_triangle.png",
+        "anchor_x": 22,
+        "anchor_y": 36,
+        "search_region": [
+          520,
+          240,
+          460,
+          320
+        ],
+        "threshold": 0.62,
+        "candidate_threshold": 0.44,
+        "tracking_threshold": 0.42,
+        "centered_fallback_threshold": 0.42,
+        "centered_fallback_retries": 1,
+        "tolerance_px": 35,
+        "gain_x": 0.9,
+        "gain_y": 0.9,
+        "max_attempts": 12,
+        "max_step_px": 110,
+        "post_move_wait_sec": 0.05,
+        "pre_click_wait_sec": 0.03,
+        "post_click_wait_sec": 0.15
+      },
+      {
+        "type": "wait",
+        "seconds": 0.35
+      },
+      {
+        "type": "mouse_move_relative",
+        "dx": -255,
+        "dy": 100,
+        "steps": 8,
+        "step_delay_ms": 16
+      },
+      {
+        "type": "left_click"
+      },
+      {
+        "type": "wait",
+        "seconds": 0.45
+      },
+      {
+        "type": "mouse_move_relative",
+        "dx": 145,
+        "dy": 20,
+        "steps": 5,
+        "step_delay_ms": 16
+      },
+      {
+        "type": "left_click"
+      }
+    ],
+    "after_ascend": [
+      {
+        "type": "vision_wait_absent",
+        "template": "templates/ascend_confirm_button.png",
+        "anchor_x": 210,
+        "anchor_y": 90,
+        "search_region": [
+          220,
+          220,
+          720,
+          380
+        ],
+        "match_mode": "color",
+        "absence_threshold": 0.35,
+        "initial_wait_sec": 5.0,
+        "timeout_sec": 12.0,
+        "poll_sec": 0.35,
+        "retry_current_click_if_visible": true,
+        "retry_click_limit": 2,
+        "retry_click_interval_sec": 1.25,
+        "click_threshold": 0.38,
+        "candidate_threshold": 0.35,
+        "tracking_threshold": 0.32,
+        "centered_fallback_threshold": 0.32,
+        "centered_fallback_retries": 1,
+        "tolerance_px": 35,
+        "gain_x": 0.9,
+        "gain_y": 0.9,
+        "max_attempts": 10,
+        "max_step_px": 110,
+        "post_move_wait_sec": 0.05,
+        "pre_click_wait_sec": 0.03,
+        "post_click_wait_sec": 0.15
+      },
+      {
+        "type": "vision_wait_absent",
+        "template": "templates/ascend_board_button.png",
+        "anchor_x": 300,
+        "anchor_y": 68,
+        "search_region": [
+          260,
+          140,
+          840,
+          260
+        ],
+        "match_mode": "color",
+        "absence_threshold": 0.4,
+        "initial_wait_sec": 0.2,
+        "timeout_sec": 8.0,
+        "poll_sec": 0.35,
+        "retry_center_click_if_visible": true,
+        "retry_click_limit": 2,
+        "retry_click_interval_sec": 1.0,
+        "click_threshold": 0.4,
+        "candidate_threshold": 0.34,
+        "tracking_threshold": 0.3,
+        "centered_fallback_threshold": 0.3,
+        "centered_fallback_retries": 1,
+        "tolerance_px": 35,
+        "gain_x": 0.9,
+        "gain_y": 0.9,
+        "max_attempts": 8,
+        "max_step_px": 110,
+        "post_move_wait_sec": 0.05,
+        "pre_click_wait_sec": 0.03,
+        "post_click_wait_sec": 0.15
+      },
+      {
+        "type": "vision_wait_absent",
+        "template": "templates/ascend_confirm_button.png",
+        "anchor_x": 210,
+        "anchor_y": 90,
+        "search_region": [
+          220,
+          220,
+          720,
+          380
+        ],
+        "match_mode": "color",
+        "absence_threshold": 0.35,
+        "initial_wait_sec": 0.2,
+        "timeout_sec": 10.0,
+        "poll_sec": 0.35,
+        "retry_current_click_if_visible": true,
+        "retry_click_limit": 2,
+        "retry_click_interval_sec": 1.0,
+        "click_threshold": 0.38,
+        "candidate_threshold": 0.35,
+        "tracking_threshold": 0.32,
+        "centered_fallback_threshold": 0.32,
+        "centered_fallback_retries": 1,
+        "tolerance_px": 35,
+        "gain_x": 0.9,
+        "gain_y": 0.9,
+        "max_attempts": 10,
+        "max_step_px": 110,
+        "post_move_wait_sec": 0.05,
+        "pre_click_wait_sec": 0.03,
+        "post_click_wait_sec": 0.15
+      },
+      {
+        "type": "vision_wait_absent",
+        "template": "templates/ascend_board_button.png",
+        "anchor_x": 300,
+        "anchor_y": 68,
+        "search_region": [
+          260,
+          140,
+          840,
+          260
+        ],
+        "match_mode": "color",
+        "absence_threshold": 0.4,
+        "initial_wait_sec": 0.5,
+        "timeout_sec": 10.0,
+        "poll_sec": 0.35
+      }
+    ]
+  }
+}
