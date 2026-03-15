@@ -101,6 +101,12 @@ Or open a specific config file:
 .\launch_gui.bat idle_home_config_4790K.json
 ```
 
+Or use the dedicated launcher:
+
+```text
+launch_gui_4790K.bat
+```
+
 Build a Windows release package:
 
 ```powershell
