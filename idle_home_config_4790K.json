@@ -215,7 +215,7 @@
       },
       {
         "type": "wait",
-        "seconds": 0.45
+        "seconds": 0.65
       },
       {
         "type": "mouse_move_relative",
@@ -223,6 +223,10 @@
         "dy": 20,
         "steps": 5,
         "step_delay_ms": 16
+      },
+      {
+        "type": "wait",
+        "seconds": 0.08
       },
       {
         "type": "left_click"
