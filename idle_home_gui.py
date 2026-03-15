@@ -160,7 +160,12 @@ class IdleHomeGuiApp:
     def __init__(self, root: tk.Tk, config_path: Path) -> None:
         self.root = root
         self.config_path = config_path
-        self.base_config = botlib.load_config(config_path)
+        self.extra_config_path = botlib.get_extra_config_path(config_path)
+        self.local_config_path = botlib.get_local_config_path(config_path)
+        self.base_config: dict[str, Any] = {}
+        self.base_runtime_config: dict[str, Any] = {}
+        self.local_override_config: dict[str, Any] = {}
+        self.runtime_config: dict[str, Any] = {}
         self.field_vars: dict[FieldSpec, tk.StringVar] = {}
         self.log_queue: queue.Queue[str] = queue.Queue()
         self.event_queue: queue.Queue[tuple[str, str]] = queue.Queue()
@@ -171,6 +176,7 @@ class IdleHomeGuiApp:
         self.log_handler = TextQueueHandler(self.log_queue)
         self.status_var = tk.StringVar(value="Idle")
         self.current_cycle_var = tk.StringVar(value="-")
+        self.config_info_var = tk.StringVar()
         self.allow_size_mismatch_var = tk.BooleanVar(value=False)
 
         self.root.title(f"Idle Home Bot v{APP_VERSION}")
@@ -178,9 +184,10 @@ class IdleHomeGuiApp:
         self.root.minsize(1180, 720)
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
+        self.reload_config_state()
         self.configure_logging()
         self.build_ui()
-        self.load_fields_from_config(self.base_config)
+        self.load_fields_from_config(self.runtime_config)
         self.hotkeys.start()
         self.root.after(100, self.process_queues)
         logging.info("GUI ready. F1=start loop, F2=stop.")
@@ -201,7 +208,7 @@ class IdleHomeGuiApp:
         controls.pack(fill="x")
 
         ttk.Button(controls, text="Reload", command=self.reload_from_disk).pack(side="left")
-        ttk.Button(controls, text="Save", command=self.save_to_disk).pack(side="left", padx=(8, 0))
+        ttk.Button(controls, text="Save Local", command=self.save_to_disk).pack(side="left", padx=(8, 0))
         ttk.Button(controls, text="Run Loop (F1)", command=lambda: self.start_runner("loop")).pack(side="left", padx=(16, 0))
         ttk.Button(controls, text="Run Once", command=lambda: self.start_runner("once")).pack(side="left", padx=(8, 0))
         ttk.Button(controls, text="Stop (F2)", command=self.request_stop).pack(side="left", padx=(8, 0))
@@ -220,7 +227,7 @@ class IdleHomeGuiApp:
         ttk.Label(status_row, textvariable=self.status_var).pack(side="left")
         ttk.Label(status_row, text="Current Cycle:").pack(side="right", padx=(0, 6))
         ttk.Label(status_row, textvariable=self.current_cycle_var).pack(side="right")
-        ttk.Label(top, text=f"Config: {self.config_path}").pack(fill="x", pady=(2, 8))
+        ttk.Label(top, textvariable=self.config_info_var).pack(fill="x", pady=(2, 8))
 
         main = ttk.Panedwindow(top, orient="horizontal")
         main.pack(fill="both", expand=True)
@@ -247,23 +254,46 @@ class IdleHomeGuiApp:
         self.log_text = tk.Text(right, wrap="word", height=30, state="disabled")
         self.log_text.pack(fill="both", expand=True)
 
+    def reload_config_state(self) -> None:
+        self.base_config = botlib.load_config(self.config_path)
+        self.base_runtime_config = botlib.load_runtime_config(self.config_path, include_local=False)
+        self.runtime_config = botlib.load_runtime_config(self.config_path, include_local=True)
+        if self.local_config_path.exists():
+            self.local_override_config = botlib.load_config(self.local_config_path)
+        else:
+            self.local_override_config = {}
+        extra_name = self.extra_config_path.name if self.extra_config_path.exists() else "-"
+        local_name = self.local_config_path.name
+        local_state = "present" if self.local_config_path.exists() else "missing"
+        self.config_info_var.set(
+            f"Base: {self.config_path.name} | Extra: {extra_name} | Local: {local_name} ({local_state})"
+        )
+
     def reload_from_disk(self) -> None:
         if self.is_running():
             messagebox.showwarning("Busy", "Stop the runner before reloading the config.")
             return
-        self.base_config = botlib.load_config(self.config_path)
-        self.load_fields_from_config(self.base_config)
-        logging.info("Reloaded %s", self.config_path.name)
+        self.reload_config_state()
+        self.load_fields_from_config(self.runtime_config)
+        logging.info("Reloaded %s (+ local overrides if present)", self.config_path.name)
 
     def save_to_disk(self) -> None:
         try:
-            self.base_config = self.build_config_from_fields()
-            botlib.save_config(self.config_path, self.base_config)
+            desired_config = self.build_config_from_fields()
+            local_override = self.build_local_override_config(desired_config)
+            if local_override:
+                botlib.save_config(self.local_config_path, local_override)
+                logging.info("Saved %s", self.local_config_path.name)
+            else:
+                if self.local_config_path.exists():
+                    self.local_config_path.unlink()
+                logging.info("Removed %s (no local overrides)", self.local_config_path.name)
+            self.reload_config_state()
+            self.load_fields_from_config(self.runtime_config)
         except Exception as exc:
             messagebox.showerror("Save failed", str(exc))
             logging.error("Save failed: %s", exc)
             return
-        logging.info("Saved %s", self.config_path.name)
 
     def is_running(self) -> bool:
         return self.worker_thread is not None and self.worker_thread.is_alive()
@@ -375,7 +405,7 @@ class IdleHomeGuiApp:
             var.set(str(value))
 
     def build_config_from_fields(self) -> dict[str, Any]:
-        config = copy.deepcopy(self.base_config)
+        config = copy.deepcopy(self.runtime_config)
         for spec, var in self.field_vars.items():
             raw_value = var.get().strip()
             if raw_value == "":
@@ -386,6 +416,39 @@ class IdleHomeGuiApp:
                 raise botlib.BotError(f"{spec.label} must be a {spec.cast.__name__}.") from exc
             self.set_by_path(config, spec.path, value)
         return config
+
+    def build_local_override_config(self, desired_config: dict[str, Any]) -> dict[str, Any]:
+        override = copy.deepcopy(self.local_override_config)
+
+        timing_keys = {
+            str(spec.path[1]) for _, specs in self.FIELD_GROUPS for spec in specs if spec.path[0] == "timing"
+        }
+        for key in timing_keys:
+            desired_value = desired_config["timing"][key]
+            base_value = self.base_runtime_config["timing"][key]
+            if desired_value == base_value:
+                if "timing" in override:
+                    override["timing"].pop(key, None)
+            else:
+                override.setdefault("timing", {})[key] = desired_value
+        if isinstance(override.get("timing"), dict) and not override["timing"]:
+            override.pop("timing", None)
+
+        sequence_names = {
+            str(spec.path[1]) for _, specs in self.FIELD_GROUPS for spec in specs if spec.path[0] == "sequences"
+        }
+        for sequence_name in sequence_names:
+            desired_sequence = desired_config["sequences"][sequence_name]
+            base_sequence = self.base_runtime_config["sequences"][sequence_name]
+            if desired_sequence == base_sequence:
+                if "sequences" in override:
+                    override["sequences"].pop(sequence_name, None)
+            else:
+                override.setdefault("sequences", {})[sequence_name] = copy.deepcopy(desired_sequence)
+        if isinstance(override.get("sequences"), dict) and not override["sequences"]:
+            override.pop("sequences", None)
+
+        return override
 
     def get_by_path(self, data: Any, path: tuple[Any, ...]) -> Any:
         current = data

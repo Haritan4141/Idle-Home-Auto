@@ -302,6 +302,10 @@ def get_extra_config_path(path: Path) -> Path:
     return path.with_name(f"{path.stem}.extra.json")
 
 
+def get_local_config_path(path: Path) -> Path:
+    return path.with_name(f"{path.stem}.local.json")
+
+
 def merge_config(base: dict[str, Any], extra: dict[str, Any]) -> dict[str, Any]:
     merged = dict(base)
     for key, value in extra.items():
@@ -319,12 +323,17 @@ def merge_config(base: dict[str, Any], extra: dict[str, Any]) -> dict[str, Any]:
     return merged
 
 
-def load_runtime_config(path: Path) -> dict[str, Any]:
+def load_runtime_config(path: Path, *, include_local: bool = True) -> dict[str, Any]:
     config = load_config(path)
     extra_path = get_extra_config_path(path)
     if extra_path.exists():
         extra = load_config(extra_path)
         config = merge_config(config, extra)
+    if include_local:
+        local_path = get_local_config_path(path)
+        if local_path.exists():
+            local = load_config(local_path)
+            config = merge_config(config, local)
     return config
 
 
@@ -585,6 +594,13 @@ def validate_action(action: dict[str, Any], points: dict[str, Any]) -> None:
         if search_region is not None:
             if not isinstance(search_region, list) or len(search_region) != 4:
                 raise BotError("vision_wait_absent search_region must be [x, y, width, height].")
+        if bool(action.get("retry_center_click_if_visible", False)) and bool(
+            action.get("retry_current_click_if_visible", False)
+        ):
+            raise BotError(
+                "vision_wait_absent cannot use both retry_center_click_if_visible and "
+                "retry_current_click_if_visible."
+            )
         if bool(action.get("retry_center_click_if_visible", False)):
             if "anchor_x" not in action or "anchor_y" not in action:
                 raise BotError(
@@ -1173,6 +1189,7 @@ class IdleHomeBot:
         timeout_sec = float(action.get("timeout_sec", 10.0))
         poll_sec = float(action.get("poll_sec", 0.25))
         retry_center_click_if_visible = bool(action.get("retry_center_click_if_visible", False))
+        retry_current_click_if_visible = bool(action.get("retry_current_click_if_visible", False))
         retry_click_limit = max(int(action.get("retry_click_limit", 0)), 0)
         retry_click_interval_sec = float(action.get("retry_click_interval_sec", 1.0))
 
@@ -1201,7 +1218,7 @@ class IdleHomeBot:
 
             now = time.monotonic()
             if (
-                retry_center_click_if_visible
+                (retry_center_click_if_visible or retry_current_click_if_visible)
                 and retry_clicks_used < retry_click_limit
                 and now >= next_retry_time
             ):
@@ -1213,11 +1230,14 @@ class IdleHomeBot:
                     retry_clicks_used,
                     retry_click_limit,
                 )
-                click_action = dict(action)
-                click_action["type"] = "vision_center_click"
-                if "click_threshold" in action:
-                    click_action["threshold"] = float(action["click_threshold"])
-                self.vision_center_click(info, click_action)
+                if retry_current_click_if_visible:
+                    self.click(info, {"type": "left_click"}, "left")
+                else:
+                    click_action = dict(action)
+                    click_action["type"] = "vision_center_click"
+                    if "click_threshold" in action:
+                        click_action["threshold"] = float(action["click_threshold"])
+                    self.vision_center_click(info, click_action)
                 continue
 
             remaining = deadline - now
@@ -1486,10 +1506,13 @@ def command_validate(config_path: Path) -> None:
     config = load_runtime_config(config_path)
     validate_config(config)
     extra_path = get_extra_config_path(config_path)
+    local_path = get_local_config_path(config_path)
+    parts = [str(config_path)]
     if extra_path.exists():
-        logging.info("Config is valid: %s + %s", config_path, extra_path)
-    else:
-        logging.info("Config is valid: %s", config_path)
+        parts.append(str(extra_path))
+    if local_path.exists():
+        parts.append(str(local_path))
+    logging.info("Config is valid: %s", " + ".join(parts))
 
 
 def command_list_windows() -> None:
