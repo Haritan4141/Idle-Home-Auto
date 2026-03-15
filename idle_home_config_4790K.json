@@ -205,7 +205,7 @@
       },
       {
         "type": "mouse_move_relative",
-        "dx": -255,
+        "dx": 0,
         "dy": 100,
         "steps": 8,
         "step_delay_ms": 16
@@ -219,9 +219,9 @@
       },
       {
         "type": "mouse_move_relative",
-        "dx": 145,
-        "dy": 20,
-        "steps": 5,
+        "dx": 0,
+        "dy": 0,
+        "steps": 1,
         "step_delay_ms": 16
       },
       {
