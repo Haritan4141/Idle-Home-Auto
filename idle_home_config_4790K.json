@@ -235,10 +235,10 @@
         "anchor_x": 210,
         "anchor_y": 90,
         "search_region": [
-          220,
-          220,
-          720,
-          380
+          420,
+          280,
+          520,
+          260
         ],
         "match_mode": "color",
         "absence_threshold": 0.35,
@@ -301,10 +301,10 @@
         "anchor_x": 210,
         "anchor_y": 90,
         "search_region": [
-          220,
-          220,
-          720,
-          380
+          420,
+          280,
+          520,
+          260
         ],
         "match_mode": "color",
         "absence_threshold": 0.35,
