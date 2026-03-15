@@ -302,10 +302,6 @@ def get_extra_config_path(path: Path) -> Path:
     return path.with_name(f"{path.stem}.extra.json")
 
 
-def get_local_config_path(path: Path) -> Path:
-    return path.with_name(f"{path.stem}.local.json")
-
-
 def merge_config(base: dict[str, Any], extra: dict[str, Any]) -> dict[str, Any]:
     merged = dict(base)
     for key, value in extra.items():
@@ -323,17 +319,12 @@ def merge_config(base: dict[str, Any], extra: dict[str, Any]) -> dict[str, Any]:
     return merged
 
 
-def load_runtime_config(path: Path, *, include_local: bool = True) -> dict[str, Any]:
+def load_runtime_config(path: Path) -> dict[str, Any]:
     config = load_config(path)
     extra_path = get_extra_config_path(path)
     if extra_path.exists():
         extra = load_config(extra_path)
         config = merge_config(config, extra)
-    if include_local:
-        local_path = get_local_config_path(path)
-        if local_path.exists():
-            local = load_config(local_path)
-            config = merge_config(config, local)
     return config
 
 
@@ -1506,13 +1497,10 @@ def command_validate(config_path: Path) -> None:
     config = load_runtime_config(config_path)
     validate_config(config)
     extra_path = get_extra_config_path(config_path)
-    local_path = get_local_config_path(config_path)
-    parts = [str(config_path)]
     if extra_path.exists():
-        parts.append(str(extra_path))
-    if local_path.exists():
-        parts.append(str(local_path))
-    logging.info("Config is valid: %s", " + ".join(parts))
+        logging.info("Config is valid: %s + %s", config_path, extra_path)
+    else:
+        logging.info("Config is valid: %s", config_path)
 
 
 def command_list_windows() -> None:

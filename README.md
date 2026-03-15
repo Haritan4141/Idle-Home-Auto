@@ -16,7 +16,6 @@ It does not read VRChat memory or inject code. It finds the `VRChat` window, che
 - `idle_home_bot.py`: main runner and calibrator.
 - `idle_home_config.json`: main config for timings and sequences.
 - `idle_home_config.extra.json`: optional extra sequences, loaded automatically.
-- `idle_home_config.local.json`: optional local machine overrides, loaded automatically after the base and extra config.
 - `launch_gui.bat`: double-click launcher for the tuning GUI when running from a cloned repo.
 
 ## Important input note
@@ -187,13 +186,6 @@ Examples:
 - Use it for scratch sequences such as `test` without touching the main config.
 - `sequences`, `timing`, `hotkeys`, `window`, and `points` from the extra file override or extend the base config.
 
-`idle_home_config.local.json`
-
-- This file is optional.
-- If it exists, it is loaded automatically after `idle_home_config.json` and `idle_home_config.extra.json`.
-- Use it for machine-specific tuning that should survive `git pull`.
-- Keep this file untracked locally. It is ignored by Git.
-
 Failure screenshots
 
 - On `BotError`, the bot saves a screenshot, metadata, the current cycle log, a recent log tail, and recent sequence-boundary screenshots under `failure_captures/`
@@ -240,8 +232,7 @@ python .\idle_home_bot.py run --once --startup-delay 3
 - `idle_home_gui.py` exposes the main timing and movement values that usually need tuning on another PC.
 - In the GUI, `F1` starts the loop and `F2` requests a stop even while `VRChat` is focused.
 - The GUI also includes one-click buttons for `pickup_sword`, `move_to_combat_position`, `enable_auto_attack`, and `ascend` so you can tune one section at a time.
-- The GUI saves machine-specific changes to `idle_home_config.local.json` only when you press `Save Local`.
-- That means you can `git pull` updated code and base config without overwriting per-PC tuning.
+- The GUI saves to `idle_home_config.json` only when you press `Save`.
 - The release build is `onedir`, not `onefile`, so `idle_home_config.json` and `templates\` remain editable next to the EXE.
 - If the desktop cursor appears stuck at the center during calibration, stop using point capture for that part of the flow. Replace it with `mouse_move_relative` and center-based clicks.
 - The runner stops if the VRChat client area does not match `1600x900`. Use `--allow-size-mismatch` only when intentionally recalibrating or testing another setup.

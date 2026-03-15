@@ -31,4 +31,3 @@ templates/sword_pickup_guard.png
 templates/sword_pickup_hilt.png
 
 failure_captures/
-*.local.json
