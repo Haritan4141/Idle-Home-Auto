@@ -27,7 +27,7 @@
       },
       {
         "type": "wait",
-        "seconds": 0.18
+        "seconds": 0.25
       },
       {
         "type": "vision_center_click",
@@ -40,9 +40,9 @@
           700,
           700
         ],
-        "threshold": 0.55,
-        "candidate_threshold": 0.4,
-        "tracking_threshold": 0.35,
+        "threshold": 0.38,
+        "candidate_threshold": 0.33,
+        "tracking_threshold": 0.3,
         "centered_fallback_threshold": 0.48,
         "centered_fallback_retries": 2,
         "tolerance_px": 30,
@@ -60,8 +60,8 @@
         "retry_on_verify_failure": true,
         "restore_view_after_click": true,
         "restore_wait_sec": 0.08,
-        "low_score_retry_count": 3,
-        "low_score_retry_delay_sec": 0.12
+        "low_score_retry_count": 5,
+        "low_score_retry_delay_sec": 0.15
       },
       {
         "type": "wait",
