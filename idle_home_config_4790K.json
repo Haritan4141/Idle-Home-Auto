@@ -236,8 +236,8 @@
       {
         "type": "vision_wait_absent",
         "template": "templates/ascend_button_4790k.png",
-        "anchor_x": 140,
-        "anchor_y": 85,
+        "anchor_x": 235,
+        "anchor_y": 90,
         "search_region": [
           260,
           320,
@@ -250,7 +250,7 @@
         "timeout_sec": 12.0,
         "poll_sec": 0.35,
         "retry_center_click_if_visible": true,
-        "retry_click_limit": 2,
+        "retry_click_limit": 3,
         "retry_click_interval_sec": 1.25,
         "click_threshold": 0.62,
         "candidate_threshold": 0.5,
@@ -269,8 +269,8 @@
       {
         "type": "vision_wait_absent",
         "template": "templates/ascend_button_4790k.png",
-        "anchor_x": 140,
-        "anchor_y": 85,
+        "anchor_x": 235,
+        "anchor_y": 90,
         "search_region": [
           260,
           320,
