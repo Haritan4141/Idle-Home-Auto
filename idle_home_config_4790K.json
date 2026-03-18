@@ -11,7 +11,7 @@
   "timing": {
     "startup_delay_sec": 3.0,
     "combat_duration_sec": 50.0,
-    "after_cycle_wait_sec": 8.0
+    "after_cycle_wait_sec": 12.0
   },
   "sequences": {
     "pickup_sword": [
