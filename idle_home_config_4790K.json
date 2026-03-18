@@ -57,6 +57,7 @@
         "verify_absent_after_click": true,
         "verify_wait_sec": 0.45,
         "absent_threshold": 0.4,
+        "verify_required_drop": 0.12,
         "retry_on_verify_failure": true,
         "restore_view_after_click": true,
         "restore_wait_sec": 0.08,

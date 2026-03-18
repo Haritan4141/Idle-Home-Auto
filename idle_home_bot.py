@@ -996,6 +996,7 @@ class IdleHomeBot:
         verify_absent_after_click = bool(action.get("verify_absent_after_click", False))
         verify_wait_sec = float(action.get("verify_wait_sec", 0.25))
         absent_threshold = float(action.get("absent_threshold", candidate_threshold))
+        verify_required_drop = float(action.get("verify_required_drop", -1.0))
         retry_on_verify_failure = bool(action.get("retry_on_verify_failure", False))
         low_score_retry_count = max(int(action.get("low_score_retry_count", 0)), 0)
         low_score_retry_delay_sec = float(action.get("low_score_retry_delay_sec", post_move_wait_sec))
@@ -1091,6 +1092,15 @@ class IdleHomeBot:
                                 absent_threshold,
                             )
                             if verify_score >= absent_threshold:
+                                if verify_required_drop > 0 and (score - verify_score) >= verify_required_drop:
+                                    logging.info(
+                                        "Vision post-click %s score drop %.3f meets verify_required_drop %.3f; treating as success.",
+                                        action["template"],
+                                        score - verify_score,
+                                        verify_required_drop,
+                                    )
+                                    restore_view()
+                                    return
                                 if retry_on_verify_failure:
                                     logging.info(
                                         "Vision post-click still visible for %s; retrying.",
@@ -1136,6 +1146,15 @@ class IdleHomeBot:
                         absent_threshold,
                     )
                     if verify_score >= absent_threshold:
+                        if verify_required_drop > 0 and (score - verify_score) >= verify_required_drop:
+                            logging.info(
+                                "Vision post-click %s score drop %.3f meets verify_required_drop %.3f; treating as success.",
+                                action["template"],
+                                score - verify_score,
+                                verify_required_drop,
+                            )
+                            restore_view()
+                            return
                         if retry_on_verify_failure:
                             logging.info(
                                 "Vision post-click still visible for %s; retrying.",
