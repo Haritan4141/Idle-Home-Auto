@@ -11,7 +11,7 @@
   "timing": {
     "startup_delay_sec": 3.0,
     "combat_duration_sec": 50.0,
-    "after_cycle_wait_sec": 12.0
+    "after_cycle_wait_sec": 5.0
   },
   "sequences": {
     "pickup_sword": [
@@ -157,7 +157,7 @@
       {
         "type": "key_hold",
         "key": "S",
-        "seconds": 2.85
+        "seconds": 2.9
       },
       {
         "type": "mouse_move_relative",
@@ -247,7 +247,7 @@
         ],
         "match_mode": "color",
         "absence_threshold": 0.48,
-        "initial_wait_sec": 5.0,
+        "initial_wait_sec": 2.0,
         "timeout_sec": 12.0,
         "poll_sec": 0.35,
         "retry_center_click_if_visible": true,

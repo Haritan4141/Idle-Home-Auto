@@ -110,18 +110,18 @@ launch_gui_4790K.bat
 Build a Windows release package:
 
 ```powershell
-.\build_release.bat 0.0.2
+.\build_release.bat 0.0.3
 ```
 
 This creates:
 
-- `release\IdleHomeBot-v0.0.2\`
-- `release\IdleHomeBot-v0.0.2.zip`
+- `release\IdleHomeBot-v0.0.3\`
+- `release\IdleHomeBot-v0.0.3.zip`
 
 After the build, both of these should be runnable because the config and templates are copied into them:
 
 - `dist\IdleHomeBotGUI\IdleHomeBotGUI.exe`
-- `release\IdleHomeBot-v0.0.1\IdleHomeBotGUI.exe`
+- `release\IdleHomeBot-v0.0.3\IdleHomeBotGUI.exe`
 
 ## Calibration workflow
 

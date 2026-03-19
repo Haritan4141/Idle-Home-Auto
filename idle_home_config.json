@@ -10,7 +10,7 @@
   },
   "timing": {
     "startup_delay_sec": 5,
-    "combat_duration_sec": 50,
+    "combat_duration_sec": 45,
     "after_cycle_wait_sec": 5
   },
   "sequences": {
@@ -149,14 +149,18 @@
       },
       {
         "type": "wait",
-        "seconds": 0.3
+        "seconds": 0.15
+      },
+      {
+        "type": "key_tap",
+        "key": "ESC"
       }
     ],
     "ascend": [
       {
         "type": "key_hold",
         "key": "S",
-        "seconds": 2.85
+        "seconds": 2.9
       },
       {
         "type": "mouse_move_relative",
@@ -180,21 +184,21 @@
         "anchor_x": 22,
         "anchor_y": 36,
         "search_region": [
-          420,
+          620,
           240,
-          400,
-          320
+          360,
+          280
         ],
         "threshold": 0.62,
-        "candidate_threshold": 0.48,
-        "tracking_threshold": 0.45,
-        "centered_fallback_threshold": 0.45,
+        "candidate_threshold": 0.52,
+        "tracking_threshold": 0.48,
+        "centered_fallback_threshold": 0.48,
         "centered_fallback_retries": 1,
-        "tolerance_px": 50,
+        "tolerance_px": 30,
         "gain_x": 0.9,
         "gain_y": 0.9,
-        "max_attempts": 12,
-        "max_step_px": 110,
+        "max_attempts": 10,
+        "max_step_px": 90,
         "post_move_wait_sec": 0.05,
         "pre_click_wait_sec": 0.03,
         "post_click_wait_sec": 0.15
@@ -205,7 +209,7 @@
       },
       {
         "type": "mouse_move_relative",
-        "dx": 0,
+        "dx": -255,
         "dy": 100,
         "steps": 8,
         "step_delay_ms": 16
@@ -215,18 +219,14 @@
       },
       {
         "type": "wait",
-        "seconds": 0.65
+        "seconds": 0.45
       },
       {
         "type": "mouse_move_relative",
-        "dx": 0,
-        "dy": 0,
-        "steps": 1,
+        "dx": 145,
+        "dy": 20,
+        "steps": 5,
         "step_delay_ms": 16
-      },
-      {
-        "type": "wait",
-        "seconds": 0.08
       },
       {
         "type": "left_click"
