@@ -538,6 +538,7 @@ def validate_action(action: dict[str, Any], points: dict[str, Any]) -> None:
         "mouse_move_relative",
         "mouse_drag_relative",
         "mouse_wheel",
+        "vision_key_seek",
         "vision_center_click",
         "vision_wait_absent",
         "pattern_click",
@@ -567,6 +568,20 @@ def validate_action(action: dict[str, Any], points: dict[str, Any]) -> None:
     if action_type == "mouse_wheel":
         if "delta" not in action:
             raise BotError("mouse_wheel action requires delta.")
+        return
+
+    if action_type == "vision_key_seek":
+        if "template" not in action:
+            raise BotError("vision_key_seek action requires template.")
+        if "key" not in action:
+            raise BotError("vision_key_seek action requires key.")
+        if "step_seconds" not in action:
+            raise BotError("vision_key_seek action requires step_seconds.")
+        search_region = action.get("search_region")
+        if search_region is not None:
+            if not isinstance(search_region, list) or len(search_region) != 4:
+                raise BotError("vision_key_seek search_region must be [x, y, width, height].")
+        key_to_vk(str(action["key"]))
         return
 
     if action_type == "vision_center_click":
@@ -1189,6 +1204,75 @@ class IdleHomeBot:
 
         raise BotError(f"vision_center_click failed to center {action['template']} in {max_attempts} attempts.")
 
+    def vision_key_seek(self, info: WindowInfo, action: dict[str, Any]) -> None:
+        template_path = str(action["template"])
+        template = self.load_template(template_path)
+        search_region = action.get("search_region")
+        match_mode = str(action.get("match_mode", "gray")).lower()
+        threshold = float(action.get("threshold", 0.5))
+        key_name = str(action["key"])
+        step_seconds = float(action["step_seconds"])
+        max_steps = max(int(action.get("max_steps", 1)), 1)
+        settle_wait_sec = float(action.get("settle_wait_sec", 0.05))
+        initial_wait_sec = float(action.get("initial_wait_sec", 0.0))
+        check_before_move = bool(action.get("check_before_move", True))
+        vk_code = key_to_vk(key_name)
+        extended = is_extended_key_name(key_name)
+        best_score = -1.0
+        best_top_left = (0, 0)
+        total_attempts = max_steps + (1 if check_before_move else 0)
+
+        if initial_wait_sec > 0:
+            logging.info("Vision key seek initial wait %.2fs for %s", initial_wait_sec, template_path)
+            self.sleep_with_abort(initial_wait_sec)
+
+        for attempt in range(total_attempts):
+            if attempt > 0 or check_before_move:
+                screenshot = capture_client_image(info)
+                score, top_left = self.find_template(screenshot, template, search_region, match_mode)
+                if score > best_score:
+                    best_score = score
+                    best_top_left = top_left
+                logging.info(
+                    "Vision key seek %s attempt=%s/%s score=%.3f top_left=(%s,%s) threshold=%.3f",
+                    template_path,
+                    attempt + 1,
+                    total_attempts,
+                    score,
+                    top_left[0],
+                    top_left[1],
+                    threshold,
+                )
+                if score >= threshold:
+                    logging.info(
+                        "Vision key seek matched %s at attempt=%s/%s.",
+                        template_path,
+                        attempt + 1,
+                        total_attempts,
+                    )
+                    return
+
+            if attempt >= max_steps:
+                break
+
+            logging.info("Vision key seek advance -> key=%s seconds=%.2f", key_name, step_seconds)
+            if not self.dry_run:
+                send_key(vk_code, key_up=False, extended=extended)
+                try:
+                    self.sleep_with_abort(step_seconds)
+                finally:
+                    send_key(vk_code, key_up=True, extended=extended)
+            else:
+                self.sleep_with_abort(step_seconds)
+            if settle_wait_sec > 0:
+                self.sleep_with_abort(settle_wait_sec)
+
+        raise BotError(
+            f"vision_key_seek could not find {template_path} "
+            f"(best_score={best_score:.3f}, threshold={threshold:.3f}, "
+            f"best_top_left=({best_top_left[0]},{best_top_left[1]}), steps={max_steps})."
+        )
+
     def vision_wait_absent(self, info: WindowInfo, action: dict[str, Any]) -> None:
         template_path = str(action["template"])
         template = self.load_template(template_path)
@@ -1324,6 +1408,10 @@ class IdleHomeBot:
                 if not self.dry_run:
                     send_mouse_wheel(delta)
                 self.sleep_with_abort(pause)
+            return
+
+        if action_type == "vision_key_seek":
+            self.vision_key_seek(info, action)
             return
 
         if action_type == "vision_center_click":
