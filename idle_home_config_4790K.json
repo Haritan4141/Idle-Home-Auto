@@ -155,6 +155,11 @@
     ],
     "ascend": [
       {
+        "type": "key_hold",
+        "key": "S",
+        "seconds": 2.9
+      },
+      {
         "type": "mouse_move_relative",
         "dx": -890,
         "dy": 0,
@@ -162,29 +167,13 @@
         "step_delay_ms": 16
       },
       {
-        "type": "wait",
-        "seconds": 0.15
-      },
-      {
-        "type": "vision_key_seek",
-        "template": "templates/ascend_panel_seek_4790k.png",
-        "search_region": [
-          280,
-          140,
-          1000,
-          420
-        ],
-        "match_mode": "color",
-        "threshold": 0.45,
-        "key": "A",
-        "step_seconds": 0.08,
-        "max_steps": 36,
-        "settle_wait_sec": 0.08,
-        "check_before_move": true
+        "type": "key_hold",
+        "key": "W",
+        "seconds": 1.1
       },
       {
         "type": "wait",
-        "seconds": 0.2
+        "seconds": 0.35
       },
       {
         "type": "vision_center_click",
@@ -192,15 +181,15 @@
         "anchor_x": 22,
         "anchor_y": 36,
         "search_region": [
-          420,
-          180,
-          700,
-          460
+          520,
+          240,
+          460,
+          320
         ],
         "threshold": 0.62,
-        "candidate_threshold": 0.42,
-        "tracking_threshold": 0.4,
-        "centered_fallback_threshold": 0.4,
+        "candidate_threshold": 0.44,
+        "tracking_threshold": 0.42,
+        "centered_fallback_threshold": 0.42,
         "centered_fallback_retries": 1,
         "tolerance_px": 50,
         "gain_x": 0.9,
