@@ -40,6 +40,10 @@ class FieldSpec:
     label: str
     path: tuple[Any, ...]
     cast: type
+    alt_paths: tuple[tuple[Any, ...], ...] = ()
+
+    def candidate_paths(self) -> tuple[tuple[Any, ...], ...]:
+        return (self.path, *self.alt_paths)
 
 
 class TextQueueHandler(logging.Handler):
@@ -133,9 +137,24 @@ class IdleHomeGuiApp:
         (
             "Ascend",
             [
-                FieldSpec("Ascend Back S", ("sequences", "ascend", 0, "seconds"), float),
-                FieldSpec("Ascend Turn DX", ("sequences", "ascend", 1, "dx"), int),
-                FieldSpec("Ascend Forward W", ("sequences", "ascend", 2, "seconds"), float),
+                FieldSpec(
+                    "Ascend Back S",
+                    ("sequences", "ascend", 0, "seconds"),
+                    float,
+                    (("sequences", "ascend", 2, "step_seconds"),),
+                ),
+                FieldSpec(
+                    "Ascend Turn DX",
+                    ("sequences", "ascend", 1, "dx"),
+                    int,
+                    (("sequences", "ascend", 0, "dx"),),
+                ),
+                FieldSpec(
+                    "Ascend Forward W",
+                    ("sequences", "ascend", 2, "seconds"),
+                    float,
+                    (("sequences", "ascend", 2, "max_steps"),),
+                ),
                 FieldSpec("Ascend Pre-Vision", ("sequences", "ascend", 3, "seconds"), float),
                 FieldSpec("To Astral DX", ("sequences", "ascend", 6, "dx"), int),
                 FieldSpec("To Astral DY", ("sequences", "ascend", 6, "dy"), int),
@@ -420,12 +439,19 @@ class IdleHomeGuiApp:
 
     def load_fields_from_config(self, config: dict[str, Any]) -> None:
         for spec, var in self.field_vars.items():
-            value = self.get_by_path(config, spec.path)
+            resolved_path = self.resolve_existing_path(config, spec)
+            if resolved_path is None:
+                var.set("")
+                continue
+            value = self.get_by_path(config, resolved_path)
             var.set(str(value))
 
     def build_config_from_fields(self) -> dict[str, Any]:
         config = copy.deepcopy(self.base_config)
         for spec, var in self.field_vars.items():
+            resolved_path = self.resolve_existing_path(config, spec)
+            if resolved_path is None:
+                continue
             raw_value = var.get().strip()
             if raw_value == "":
                 raise botlib.BotError(f"{spec.label} cannot be empty.")
@@ -433,8 +459,17 @@ class IdleHomeGuiApp:
                 value = spec.cast(raw_value)
             except ValueError as exc:
                 raise botlib.BotError(f"{spec.label} must be a {spec.cast.__name__}.") from exc
-            self.set_by_path(config, spec.path, value)
+            self.set_by_path(config, resolved_path, value)
         return config
+
+    def resolve_existing_path(self, data: Any, spec: FieldSpec) -> tuple[Any, ...] | None:
+        for path in spec.candidate_paths():
+            try:
+                self.get_by_path(data, path)
+                return path
+            except (KeyError, IndexError, TypeError):
+                continue
+        return None
 
     def get_by_path(self, data: Any, path: tuple[Any, ...]) -> Any:
         current = data
