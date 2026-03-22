@@ -180,15 +180,15 @@
         "anchor_x": 22,
         "anchor_y": 36,
         "search_region": [
-          620,
-          240,
-          360,
-          280
+          600,
+          220,
+          420,
+          320
         ],
         "threshold": 0.62,
-        "candidate_threshold": 0.5,
-        "tracking_threshold": 0.46,
-        "centered_fallback_threshold": 0.46,
+        "candidate_threshold": 0.48,
+        "tracking_threshold": 0.44,
+        "centered_fallback_threshold": 0.44,
         "centered_fallback_retries": 1,
         "tolerance_px": 30,
         "gain_x": 0.9,
