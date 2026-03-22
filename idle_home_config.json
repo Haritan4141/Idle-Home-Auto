@@ -10,7 +10,7 @@
   },
   "timing": {
     "startup_delay_sec": 5,
-    "combat_duration_sec": 45,
+    "combat_duration_sec": 50,
     "after_cycle_wait_sec": 5
   },
   "sequences": {
