@@ -137,6 +137,7 @@ class IdleHomeGuiApp:
                 FieldSpec("Ascend Turn DX", ("sequences", "ascend", 1, "dx"), int),
                 FieldSpec("Ascend Forward W", ("sequences", "ascend", 2, "seconds"), float),
                 FieldSpec("Ascend Pre-Vision", ("sequences", "ascend", 3, "seconds"), float),
+                FieldSpec("Next Click Count", ("sequences", "ascend", 4, "click_repeat"), int),
                 FieldSpec("To Astral DX", ("sequences", "ascend", 6, "dx"), int),
                 FieldSpec("To Astral DY", ("sequences", "ascend", 6, "dy"), int),
                 FieldSpec("Astral Wait", ("sequences", "ascend", 8, "seconds"), float),

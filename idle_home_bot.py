@@ -963,16 +963,25 @@ class IdleHomeBot:
     def click(self, info: WindowInfo, action: dict[str, Any], button: str) -> None:
         if "target" in action or ("x" in action and "y" in action):
             self.move_mouse(info, action)
-        self.perform_click(button)
+        repeat = max(int(action.get("repeat", 1)), 1)
+        pause_sec = float(action.get("pause_sec", 0.0))
+        self.perform_click(button, repeat=repeat, pause_sec=pause_sec)
 
-    def perform_click(self, button: str) -> None:
-        logging.info("%s click", button)
-        if self.dry_run:
-            return
-        if button == "left":
-            left_click()
+    def perform_click(self, button: str, *, repeat: int = 1, pause_sec: float = 0.0) -> None:
+        repeat = max(int(repeat), 1)
+        pause_sec = max(float(pause_sec), 0.0)
+        if repeat > 1:
+            logging.info("%s click x%s", button, repeat)
         else:
-            right_click()
+            logging.info("%s click", button)
+        for index in range(repeat):
+            if not self.dry_run:
+                if button == "left":
+                    left_click()
+                else:
+                    right_click()
+            if index + 1 < repeat:
+                self.sleep_with_abort(pause_sec)
 
     def vision_center_click(self, info: WindowInfo, action: dict[str, Any]) -> None:
         template = self.load_template(str(action["template"]))
@@ -1003,6 +1012,8 @@ class IdleHomeBot:
         restore_view_after_click = bool(action.get("restore_view_after_click", False))
         restore_wait_sec = float(action.get("restore_wait_sec", post_move_wait_sec))
         button = str(action.get("button", "left")).lower()
+        click_repeat = max(int(action.get("click_repeat", 1)), 1)
+        click_repeat_pause_sec = float(action.get("click_repeat_pause_sec", 0.08))
         locked_on = False
         centered_match_count = 0
         total_adjust_dx = 0
@@ -1072,7 +1083,7 @@ class IdleHomeBot:
                             centered_match_count,
                         )
                         self.sleep_with_abort(pre_click_wait_sec)
-                        self.perform_click(button)
+                        self.perform_click(button, repeat=click_repeat, pause_sec=click_repeat_pause_sec)
                         self.sleep_with_abort(post_click_wait_sec)
                         if verify_absent_after_click:
                             self.sleep_with_abort(verify_wait_sec)
@@ -1126,7 +1137,7 @@ class IdleHomeBot:
                     continue
                 centered_match_count = 0
                 self.sleep_with_abort(pre_click_wait_sec)
-                self.perform_click(button)
+                self.perform_click(button, repeat=click_repeat, pause_sec=click_repeat_pause_sec)
                 self.sleep_with_abort(post_click_wait_sec)
                 if verify_absent_after_click:
                     self.sleep_with_abort(verify_wait_sec)

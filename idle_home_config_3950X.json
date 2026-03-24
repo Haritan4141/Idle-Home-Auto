@@ -190,6 +190,8 @@
         "tracking_threshold": 0.44,
         "centered_fallback_threshold": 0.44,
         "centered_fallback_retries": 1,
+        "click_repeat": 1,
+        "click_repeat_pause_sec": 0.08,
         "tolerance_px": 35,
         "gain_x": 0.9,
         "gain_y": 0.9,
