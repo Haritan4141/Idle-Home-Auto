@@ -9,9 +9,9 @@
     "capture": "F8"
   },
   "timing": {
-    "startup_delay_sec": 5,
-    "combat_duration_sec": 50,
-    "after_cycle_wait_sec": 5
+    "startup_delay_sec": 5.0,
+    "combat_duration_sec": 240.0,
+    "after_cycle_wait_sec": 5.0
   },
   "sequences": {
     "pickup_sword": [
@@ -65,7 +65,7 @@
       },
       {
         "type": "wait",
-        "seconds": 10
+        "seconds": 10.0
       },
       {
         "type": "mouse_wheel",
@@ -190,7 +190,7 @@
         "tracking_threshold": 0.44,
         "centered_fallback_threshold": 0.44,
         "centered_fallback_retries": 1,
-        "click_repeat": 1,
+        "click_repeat": 7,
         "click_repeat_pause_sec": 0.08,
         "tolerance_px": 35,
         "gain_x": 0.9,
