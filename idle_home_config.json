@@ -10,7 +10,7 @@
   },
   "timing": {
     "startup_delay_sec": 5.0,
-    "combat_duration_sec": 240.0,
+    "combat_duration_sec": 100.0,
     "after_cycle_wait_sec": 5.0
   },
   "sequences": {
@@ -160,7 +160,7 @@
       {
         "type": "key_hold",
         "key": "S",
-        "seconds": 2.9
+        "seconds": 2.88
       },
       {
         "type": "mouse_move_relative",
@@ -194,7 +194,7 @@
         "tracking_threshold": 0.48,
         "centered_fallback_threshold": 0.48,
         "centered_fallback_retries": 1,
-        "click_repeat": 7,
+        "click_repeat": 10,
         "click_repeat_pause_sec": 0.08,
         "tolerance_px": 30,
         "gain_x": 0.9,

@@ -10,7 +10,7 @@
   },
   "timing": {
     "startup_delay_sec": 5.0,
-    "combat_duration_sec": 240.0,
+    "combat_duration_sec": 100.0,
     "after_cycle_wait_sec": 5.0
   },
   "sequences": {
@@ -156,7 +156,7 @@
       {
         "type": "key_hold",
         "key": "S",
-        "seconds": 2.9
+        "seconds": 2.88
       },
       {
         "type": "mouse_move_relative",
@@ -180,17 +180,17 @@
         "anchor_x": 22,
         "anchor_y": 36,
         "search_region": [
-          600,
-          220,
-          420,
-          320
+          560,
+          180,
+          500,
+          380
         ],
         "threshold": 0.62,
-        "candidate_threshold": 0.48,
-        "tracking_threshold": 0.44,
-        "centered_fallback_threshold": 0.44,
+        "candidate_threshold": 0.42,
+        "tracking_threshold": 0.4,
+        "centered_fallback_threshold": 0.4,
         "centered_fallback_retries": 1,
-        "click_repeat": 7,
+        "click_repeat": 10,
         "click_repeat_pause_sec": 0.08,
         "tolerance_px": 35,
         "gain_x": 0.9,
