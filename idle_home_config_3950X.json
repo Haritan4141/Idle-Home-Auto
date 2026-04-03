@@ -10,7 +10,7 @@
   },
   "timing": {
     "startup_delay_sec": 5.0,
-    "combat_duration_sec": 180.0,
+    "combat_duration_sec": 160.0,
     "after_cycle_wait_sec": 5.0
   },
   "sequences": {
@@ -40,10 +40,10 @@
           700,
           700
         ],
-        "threshold": 0.55,
+        "threshold": 0.42,
         "candidate_threshold": 0.4,
         "tracking_threshold": 0.35,
-        "centered_fallback_threshold": 0.48,
+        "centered_fallback_threshold": 0.42,
         "centered_fallback_retries": 2,
         "tolerance_px": 20,
         "gain_x": 0.9,
