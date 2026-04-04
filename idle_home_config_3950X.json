@@ -180,10 +180,10 @@
         "anchor_x": 22,
         "anchor_y": 36,
         "search_region": [
-          560,
-          200,
-          500,
-          360
+          600,
+          280,
+          420,
+          260
         ],
         "threshold": 0.62,
         "candidate_threshold": 0.46,
@@ -194,9 +194,9 @@
         "click_repeat_pause_sec": 0.08,
         "tolerance_px": 40,
         "gain_x": 0.9,
-        "gain_y": 0.9,
+        "gain_y": 0.55,
         "max_attempts": 10,
-        "max_step_px": 90,
+        "max_step_px": 60,
         "post_move_wait_sec": 0.05,
         "pre_click_wait_sec": 0.03,
         "post_click_wait_sec": 0.15
