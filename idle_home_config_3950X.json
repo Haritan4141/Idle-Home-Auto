@@ -10,7 +10,7 @@
   },
   "timing": {
     "startup_delay_sec": 5.0,
-    "combat_duration_sec": 160.0,
+    "combat_duration_sec": 210.0,
     "after_cycle_wait_sec": 5.0
   },
   "sequences": {
@@ -56,7 +56,8 @@
         "match_mode": "color",
         "verify_absent_after_click": true,
         "verify_wait_sec": 0.35,
-        "absent_threshold": 0.45,
+        "absent_threshold": 0.4,
+        "verify_required_drop": 0.12,
         "retry_on_verify_failure": true,
         "restore_view_after_click": true,
         "restore_wait_sec": 0.08,
@@ -190,7 +191,7 @@
         "tracking_threshold": 0.42,
         "centered_fallback_threshold": 0.42,
         "centered_fallback_retries": 1,
-        "click_repeat": 15,
+        "click_repeat": 17,
         "click_repeat_pause_sec": 0.08,
         "tolerance_px": 40,
         "gain_x": 0.9,
