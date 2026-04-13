@@ -2,11 +2,14 @@ import argparse
 import ctypes
 import json
 import logging
+import socket
 import sys
 import time
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import cv2
 import numpy as np
@@ -714,6 +717,7 @@ class IdleHomeBot:
         )
         self.recent_snapshot_limit = max(int(self.config.get("failure_recent_snapshot_count", 8)), 0)
         self.recent_snapshots: list[dict[str, Any]] = []
+        self.last_failure_artifact_path: Path | None = None
         logging.getLogger().addHandler(self.failure_log_handler)
         logging.getLogger().addHandler(self.recent_log_handler)
 
@@ -812,6 +816,9 @@ class IdleHomeBot:
         try:
             if screenshot is not None:
                 self.write_cv_image(image_path, screenshot)
+                self.last_failure_artifact_path = image_path
+            else:
+                self.last_failure_artifact_path = meta_path
             meta_lines = [
                 f"time={timestamp}",
                 f"cycle={self.current_cycle}",
@@ -840,6 +847,59 @@ class IdleHomeBot:
                 logging.info("Saved failure artifacts to %s", meta_path)
         except OSError as exc:
             logging.warning("Failed to save failure artifacts: %s", exc)
+
+    def send_ntfy_notification(self, title: str, message: str) -> bool:
+        ntfy_config = dict(self.config.get("notifications", {}).get("ntfy", {}))
+        topic = str(ntfy_config.get("topic", "")).strip()
+        if not topic:
+            return False
+
+        server = str(ntfy_config.get("server", "https://ntfy.sh")).strip().rstrip("/")
+        if not server:
+            server = "https://ntfy.sh"
+        priority = str(ntfy_config.get("priority", "default")).strip()
+        tags_value = ntfy_config.get("tags", "")
+        if isinstance(tags_value, list):
+            tags = ",".join(str(tag).strip() for tag in tags_value if str(tag).strip())
+        else:
+            tags = str(tags_value).strip()
+
+        headers = {
+            "Title": title,
+            "Priority": priority or "default",
+        }
+        if tags:
+            headers["Tags"] = tags
+
+        try:
+            request = urllib.request.Request(
+                f"{server}/{quote(topic, safe='')}",
+                data=message.encode("utf-8"),
+                headers=headers,
+                method="POST",
+            )
+            with urllib.request.urlopen(request, timeout=10):
+                pass
+            logging.info("Sent ntfy notification.")
+            return True
+        except Exception as exc:
+            logging.warning("Failed to send ntfy notification: %s", exc)
+            return False
+
+    def send_failure_notification(self, error_message: str) -> bool:
+        urls = [str(url).strip() for url in self.config.get("runtime_status_urls", []) if str(url).strip()]
+        lines = [
+            f"PC: {socket.gethostname()}",
+            f"Cycle: {self.current_cycle}",
+            f"Sequence: {self.current_sequence or '-'}",
+            f"Action: {self.current_action_type or '-'}",
+            f"Error: {error_message}",
+        ]
+        if urls:
+            lines.append(f"Status: {urls[0]}")
+        if self.last_failure_artifact_path is not None:
+            lines.append(f"Failure Artifact: {self.last_failure_artifact_path.name}")
+        return self.send_ntfy_notification("Idle Home Bot stopped", "\n".join(lines))
 
     def load_template(self, path_value: str) -> np.ndarray:
         path = self.resolve_asset_path(path_value)
@@ -1597,11 +1657,18 @@ def main() -> int:
     except BotError as exc:
         if bot is not None and not getattr(args, "dry_run", False):
             bot.capture_failure_artifacts(str(exc))
+            bot.send_failure_notification(str(exc))
         logging.error(str(exc))
         return 1
     except KeyboardInterrupt:
         logging.warning("Interrupted by user.")
         return 130
+    except Exception:
+        if bot is not None and not getattr(args, "dry_run", False):
+            bot.capture_failure_artifacts("Unexpected idle_home_bot.py error.")
+            bot.send_failure_notification("Unexpected idle_home_bot.py error.")
+        logging.exception("Unexpected idle_home_bot.py error.")
+        return 1
     finally:
         if bot is not None:
             bot.close()

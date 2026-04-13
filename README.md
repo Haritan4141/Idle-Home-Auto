@@ -95,6 +95,22 @@ Or double-click:
 launch_gui.bat
 ```
 
+When the GUI is open, it also starts a small LAN status page. You can open the shown URL from another device on the same network, such as an iPhone in Safari, to check:
+
+- Running / Stopped
+- Current cycle
+- Current sequence
+- Last log line
+- Last error
+- Latest failure screenshot
+
+Optional stop notifications can be sent through `ntfy`.
+
+- Set `notifications.ntfy.topic` in the selected config to enable it
+- Leave `notifications.ntfy.topic` empty to disable it
+- The bot sends a notification when it stops on a `BotError`
+- The GUI also has a `Test Notification` button for a manual push test
+
 Or open a specific config file:
 
 ```powershell
@@ -247,6 +263,9 @@ python .\idle_home_bot.py run --once --startup-delay 3
 - The GUI starts with `idle_home_config.json` by default, and `Open Config...` can switch to another JSON file for load/save/run.
 - `launch_gui.bat` also accepts an optional config path and opens the GUI with that file already selected.
 - The GUI saves to the currently selected JSON file only when you press `Save`.
+- The GUI also starts a small HTTP status page on the local network, typically `http://<PC-IP>:8787/`. Windows may ask for a firewall prompt the first time.
+- The GUI exposes `ntfy Server`, `ntfy Topic`, `ntfy Priority`, and `ntfy Tags`. If `ntfy Topic` is non-empty, the bot sends a stop notification on failure.
+- In the iPhone `ntfy` app, leave `Use another server` off when using the public `ntfy.sh` service. Only turn it on for a self-hosted server.
 - The release build is `onedir`, not `onefile`, so `idle_home_config.json` and `templates\` remain editable next to the EXE.
 - If the desktop cursor appears stuck at the center during calibration, stop using point capture for that part of the flow. Replace it with `mouse_move_relative` and center-based clicks.
 - The runner stops if the VRChat client area does not match `1600x900`. Use `--allow-size-mismatch` only when intentionally recalibrating or testing another setup.
