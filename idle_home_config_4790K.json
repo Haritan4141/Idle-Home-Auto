@@ -8,6 +8,14 @@
     "abort": "F12",
     "capture": "F8"
   },
+  "notifications": {
+    "ntfy": {
+      "server": "https://ntfy.sh",
+      "topic": "",
+      "priority": "default",
+      "tags": "warning"
+    }
+  },
   "timing": {
     "startup_delay_sec": 3.0,
     "combat_duration_sec": 50.0,

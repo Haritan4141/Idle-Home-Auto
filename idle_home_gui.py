@@ -22,7 +22,7 @@ from urllib.parse import urlparse
 import idle_home_bot as botlib
 
 
-APP_VERSION = "0.0.4"
+APP_VERSION = "0.0.5"
 MOD_NOREPEAT = 0x4000
 WM_HOTKEY = 0x0312
 WM_QUIT = 0x0012

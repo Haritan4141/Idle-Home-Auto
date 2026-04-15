@@ -3,7 +3,7 @@ setlocal
 
 set "ROOT=%~dp0"
 set "VERSION=%~1"
-if "%VERSION%"=="" set "VERSION=0.0.4"
+if "%VERSION%"=="" set "VERSION=0.0.5"
 
 set "APP_NAME=IdleHomeBotGUI"
 set "BUILD_DIR=%ROOT%build"
