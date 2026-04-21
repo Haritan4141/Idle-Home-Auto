@@ -100,6 +100,8 @@ VRChat のワールド `Idle Home` をデスクトップモードで周回する
 - `recovery.enabled=true` を main / 4790K / 3950X の各 config に追加
 - ESC メニューが既に開いている状態でも壊れにくいよう、`respawn_from_escape_menu` action を追加
 - `respawn_from_escape_menu` はリスポーンボタンが見えていればそのままクリックし、見えていなければ `ESC` で開いてからクリックする
+- LAN 内ステータスページに `Started At` / `Last Recovery` / `Stopped At` / `Summary Events` を追加
+- GUI 起動フォルダに `status_summary.log` を作成し、START / RECOVERY START / RECOVERY SUCCESS / STOP を要約ログとして追記する
 
 # MCP操作ログ
 
@@ -136,6 +138,8 @@ VRChat のワールド `Idle Home` をデスクトップモードで周回する
 - `recover_respawn` の単体テスト
 - `recover_from_failure` の一連動作テスト
 - 自動復帰が実際の `BotError` 停止時に正しく動くかの長時間検証
+- LAN 内ステータスページの要約ログが実機で期待通り更新されるか確認
+- `status_summary.log` が各 PC の config フォルダに保存されるか確認
 
 # 次にやること
 
@@ -193,6 +197,7 @@ http://<PC-IP>:8787/
 - `recover_from_failure` を任意位置から実行し、リスポーンから Ascend 完了まで通るか確認する
 - recovery 成功時は次 cycle へ戻ることを長時間テストで確認する
 - recovery 失敗時だけ停止通知されることを確認する
+- LAN 内ステータスページで `Started At` / `Last Recovery` / `Stopped At` / `Summary Events` を確認する
 
 10. 停止した場合は `failure_captures/` の最新一式を見て原因を分類する
 

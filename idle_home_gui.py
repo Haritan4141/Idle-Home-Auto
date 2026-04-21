@@ -28,8 +28,11 @@ WM_HOTKEY = 0x0312
 WM_QUIT = 0x0012
 CYCLE_START_RE = re.compile(r"\bCycle (\d+) start\b")
 SEQUENCE_RE = re.compile(r"\bSequence ([A-Za-z0-9_]+)\b")
+RECOVERY_START_RE = re.compile(r"\bCycle (\d+) failed\. Starting recovery:")
+RECOVERY_SUCCESS_RE = re.compile(r"\bRecovery succeeded for cycle (\d+)\.")
 STATUS_SERVER_PORT = 8787
 STATUS_SERVER_PORT_ATTEMPTS = 10
+SUMMARY_LOG_MAX_LINES = 100
 
 user32 = ctypes.windll.user32
 kernel32 = ctypes.windll.kernel32
@@ -141,23 +144,60 @@ class GuiStatusStore:
         self._last_log_line = ""
         self._last_error = ""
         self._last_update_ts: float | None = None
+        self._started_ts: float | None = None
+        self._last_recovery_ts: float | None = None
+        self._stopped_ts: float | None = None
         self._config_path = ""
         self._failure_dir = Path.cwd() / "failure_captures"
+        self._summary_log_path = Path.cwd() / "status_summary.log"
+        self._summary_events: list[str] = []
+
+    def _load_summary_events_locked(self) -> None:
+        if not self._summary_log_path.exists():
+            self._summary_events = []
+            return
+        try:
+            lines = self._summary_log_path.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            self._summary_events = []
+            return
+        self._summary_events = lines[-SUMMARY_LOG_MAX_LINES:]
+
+    def _append_summary_event_locked(self, label: str, detail: str = "") -> None:
+        timestamp = time.time()
+        line = f"{format_status_timestamp(timestamp)} {label}"
+        if detail:
+            line = f"{line} {detail}"
+        self._summary_events.append(line)
+        if len(self._summary_events) > SUMMARY_LOG_MAX_LINES:
+            del self._summary_events[:-SUMMARY_LOG_MAX_LINES]
+        try:
+            self._summary_log_path.parent.mkdir(parents=True, exist_ok=True)
+            with self._summary_log_path.open("a", encoding="utf-8") as handle:
+                handle.write(line + "\n")
+        except OSError:
+            pass
 
     def set_config_path(self, config_path: Path) -> None:
         with self._lock:
             self._config_path = str(config_path)
             self._failure_dir = config_path.parent / "failure_captures"
+            self._summary_log_path = config_path.parent / "status_summary.log"
+            self._load_summary_events_locked()
             self._last_update_ts = time.time()
 
     def mark_runner_started(self, mode: str) -> None:
         with self._lock:
+            now = time.time()
             self._status = f"Running: {mode}"
             self._running_mode = mode
             self._current_cycle = "-"
             self._current_sequence = "-"
             self._last_error = ""
-            self._last_update_ts = time.time()
+            self._started_ts = now
+            self._stopped_ts = None
+            self._last_update_ts = now
+            self._append_summary_event_locked("START", f"mode={mode}")
 
     def mark_stop_requested(self) -> None:
         with self._lock:
@@ -166,11 +206,14 @@ class GuiStatusStore:
 
     def mark_idle(self) -> None:
         with self._lock:
+            now = time.time()
             self._status = "Idle"
             self._running_mode = None
             self._current_cycle = "-"
             self._current_sequence = "-"
-            self._last_update_ts = time.time()
+            self._stopped_ts = now
+            self._last_update_ts = now
+            self._append_summary_event_locked("STOP")
 
     def update_from_log(self, message: str) -> None:
         clean = message.strip()
@@ -185,6 +228,13 @@ class GuiStatusStore:
             sequence_match = SEQUENCE_RE.search(clean)
             if sequence_match:
                 self._current_sequence = sequence_match.group(1)
+            recovery_start_match = RECOVERY_START_RE.search(clean)
+            if recovery_start_match:
+                self._last_recovery_ts = self._last_update_ts
+                self._append_summary_event_locked("RECOVERY START", f"cycle={recovery_start_match.group(1)}")
+            recovery_success_match = RECOVERY_SUCCESS_RE.search(clean)
+            if recovery_success_match:
+                self._append_summary_event_locked("RECOVERY SUCCESS", f"cycle={recovery_success_match.group(1)}")
             if " ERROR " in clean or clean.startswith("ERROR ") or re.search(r"\bERROR\b", clean):
                 self._last_error = clean
 
@@ -209,6 +259,11 @@ class GuiStatusStore:
                 "last_error": self._last_error,
                 "last_update_ts": self._last_update_ts,
                 "last_update": format_status_timestamp(self._last_update_ts),
+                "started_at": format_status_timestamp(self._started_ts),
+                "last_recovery_at": format_status_timestamp(self._last_recovery_ts),
+                "stopped_at": format_status_timestamp(self._stopped_ts),
+                "summary_log_path": str(self._summary_log_path),
+                "summary_events": list(self._summary_events),
                 "config_path": self._config_path,
                 "failure_dir": str(self._failure_dir),
             }
@@ -259,6 +314,7 @@ class StatusRequestHandler(BaseHTTPRequestHandler):
 
     def serve_index(self) -> None:
         snapshot = self.status_store.snapshot()
+        summary_log = "\n".join(str(line) for line in snapshot["summary_events"]) or "-"
         image_tag = "<p>Latest failure image: none</p>"
         if snapshot["latest_failure_image"] is not None:
             image_tag = (
@@ -289,10 +345,18 @@ class StatusRequestHandler(BaseHTTPRequestHandler):
       <div class="label">Status</div><div>{html.escape(str(snapshot["status"]))}</div>
       <div class="label">Current Cycle</div><div>{html.escape(str(snapshot["current_cycle"]))}</div>
       <div class="label">Current Sequence</div><div>{html.escape(str(snapshot["current_sequence"]))}</div>
+      <div class="label">Started At</div><div>{html.escape(str(snapshot["started_at"]))}</div>
+      <div class="label">Last Recovery</div><div>{html.escape(str(snapshot["last_recovery_at"]))}</div>
+      <div class="label">Stopped At</div><div>{html.escape(str(snapshot["stopped_at"]))}</div>
       <div class="label">Last Update</div><div>{html.escape(str(snapshot["last_update"]))}</div>
       <div class="label">Config</div><div class="mono">{html.escape(str(snapshot["config_path"]))}</div>
       <div class="label">Failure Dir</div><div class="mono">{html.escape(str(snapshot["failure_dir"]))}</div>
+      <div class="label">Summary Log</div><div class="mono">{html.escape(str(snapshot["summary_log_path"]))}</div>
     </div>
+  </div>
+  <div class="card">
+    <div class="label">Summary Events</div>
+    <div class="mono">{html.escape(summary_log)}</div>
   </div>
   <div class="card">
     <div class="label">Last Log</div>
