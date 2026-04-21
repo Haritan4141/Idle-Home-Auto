@@ -543,6 +543,7 @@ def validate_action(action: dict[str, Any], points: dict[str, Any]) -> None:
         "mouse_wheel",
         "vision_center_click",
         "vision_wait_absent",
+        "respawn_from_escape_menu",
         "pattern_click",
         "left_click",
         "right_click",
@@ -600,6 +601,15 @@ def validate_action(action: dict[str, Any], points: dict[str, Any]) -> None:
                 raise BotError(
                     "vision_wait_absent with retry_center_click_if_visible requires anchor_x and anchor_y."
                 )
+        return
+
+    if action_type == "respawn_from_escape_menu":
+        if "template" not in action:
+            raise BotError("respawn_from_escape_menu action requires template.")
+        search_region = action.get("search_region")
+        if search_region is not None:
+            if not isinstance(search_region, list) or len(search_region) != 4:
+                raise BotError("respawn_from_escape_menu search_region must be [x, y, width, height].")
         return
 
     if action_type == "pattern_click":
@@ -667,6 +677,15 @@ def validate_config(config: dict[str, Any]) -> None:
             if not isinstance(action, dict):
                 raise BotError(f"Sequence {sequence_name} contains a non-object action.")
             validate_action(action, points)
+
+    recovery_config = dict(config.get("recovery", {}))
+    if bool(recovery_config.get("enabled", False)):
+        recovery_sequence = str(recovery_config.get("sequence", "recover_from_failure"))
+        recovery_verify_sequence = str(recovery_config.get("verify_sequence", "after_ascend"))
+        if recovery_sequence not in sequences:
+            raise BotError(f'Recovery sequence "{recovery_sequence}" is not defined.')
+        if recovery_verify_sequence and recovery_verify_sequence not in sequences:
+            raise BotError(f'Recovery verify sequence "{recovery_verify_sequence}" is not defined.')
 
     for timing_name in {"startup_delay_sec", "combat_duration_sec", "after_cycle_wait_sec"}:
         if timing_name not in config["timing"]:
@@ -1330,6 +1349,58 @@ class IdleHomeBot:
                 )
             self.sleep_with_abort(min(max(poll_sec, 0.05), remaining))
 
+    def respawn_from_escape_menu(self, info: WindowInfo, action: dict[str, Any]) -> None:
+        template_path = str(action["template"])
+        template = self.load_template(template_path)
+        search_region = action.get("search_region")
+        match_mode = str(action.get("match_mode", "color")).lower()
+        threshold = float(action.get("threshold", 0.8))
+        anchor_x = int(action.get("anchor_x", template.shape[1] // 2))
+        anchor_y = int(action.get("anchor_y", template.shape[0] // 2))
+        open_attempts = max(int(action.get("open_attempts", 1)), 0)
+        open_wait_sec = float(action.get("open_wait_sec", 0.45))
+        pre_click_wait_sec = float(action.get("pre_click_wait_sec", 0.03))
+        post_click_wait_sec = float(action.get("post_click_wait_sec", 1.0))
+        esc_hold_ms = int(action.get("esc_hold_ms", 50))
+
+        last_score = 0.0
+        last_top_left = (0, 0)
+        for attempt in range(open_attempts + 1):
+            screenshot = capture_client_image(info)
+            score, top_left = self.find_template(screenshot, template, search_region, match_mode)
+            last_score = score
+            last_top_left = top_left
+            logging.info(
+                "Respawn candidate %s attempt=%s score=%.3f top_left=(%s,%s)",
+                template_path,
+                attempt + 1,
+                score,
+                top_left[0],
+                top_left[1],
+            )
+            if score >= threshold:
+                screen_x = info.origin_x + top_left[0] + anchor_x
+                screen_y = info.origin_y + top_left[1] + anchor_y
+                logging.info("Respawn click -> (%s, %s)", screen_x, screen_y)
+                if not self.dry_run:
+                    set_cursor_position(screen_x, screen_y)
+                self.sleep_with_abort(pre_click_wait_sec)
+                self.perform_click("left")
+                self.sleep_with_abort(post_click_wait_sec)
+                return
+
+            if attempt < open_attempts:
+                logging.info("Respawn menu not visible. Key tap ESC")
+                if not self.dry_run:
+                    tap_key(key_to_vk("ESC"), esc_hold_ms)
+                self.sleep_with_abort(open_wait_sec)
+
+        raise BotError(
+            f"respawn_from_escape_menu could not find {template_path} "
+            f"(score={last_score:.3f}, threshold={threshold:.3f}, "
+            f"top_left=({last_top_left[0]},{last_top_left[1]}))."
+        )
+
     def pattern_click(self, action: dict[str, Any]) -> None:
         button = str(action.get("button", "left")).lower()
         if button not in {"left", "right"}:
@@ -1403,6 +1474,10 @@ class IdleHomeBot:
 
         if action_type == "vision_wait_absent":
             self.vision_wait_absent(info, action)
+            return
+
+        if action_type == "respawn_from_escape_menu":
+            self.respawn_from_escape_menu(info, action)
             return
 
         if action_type == "pattern_click":
@@ -1484,6 +1559,43 @@ class IdleHomeBot:
         self.run_sequence("ascend", info)
         self.run_sequence("after_ascend", info)
 
+    def try_recover_from_cycle_error(self, error: BotError) -> bool:
+        recovery_config = dict(self.config.get("recovery", {}))
+        if not bool(recovery_config.get("enabled", False)):
+            return False
+
+        sequence_name = str(recovery_config.get("sequence", "recover_from_failure"))
+        verify_sequence_name = str(recovery_config.get("verify_sequence", "after_ascend"))
+        if sequence_name not in self.config["sequences"]:
+            raise BotError(f'Recovery sequence "{sequence_name}" is not defined.') from error
+        if verify_sequence_name and verify_sequence_name not in self.config["sequences"]:
+            raise BotError(f'Recovery verify sequence "{verify_sequence_name}" is not defined.') from error
+
+        original_error = str(error)
+        logging.warning("Cycle %s failed. Starting recovery: %s", self.current_cycle, original_error)
+        if not self.dry_run:
+            self.capture_failure_artifacts(f"Recoverable cycle error: {original_error}")
+
+        try:
+            info = ensure_window(self.config, self.allow_size_mismatch)
+            self.record_state_snapshot("recovery_start")
+            self.run_sequence(sequence_name, info)
+            if verify_sequence_name:
+                self.run_sequence(verify_sequence_name, info)
+            self.record_state_snapshot("recovery_success")
+        except BotError as recovery_error:
+            raise BotError(
+                f"Recovery failed after cycle error: {original_error} "
+                f"(recovery error: {recovery_error})"
+            ) from recovery_error
+        finally:
+            if sys.exc_info()[0] is None:
+                self.current_sequence = None
+                self.current_action_type = None
+
+        logging.info("Recovery succeeded for cycle %s.", self.current_cycle)
+        return True
+
     def run_forever(self, once: bool) -> None:
         self.countdown(float(self.config["timing"]["startup_delay_sec"]))
         cycle = 0
@@ -1493,8 +1605,13 @@ class IdleHomeBot:
             self.failure_log_handler.clear()
             logging.info("Cycle %s start", cycle)
             self.record_state_snapshot("cycle_start")
-            self.run_cycle()
-            logging.info("Cycle %s complete", cycle)
+            try:
+                self.run_cycle()
+                logging.info("Cycle %s complete", cycle)
+            except BotError as exc:
+                if not self.try_recover_from_cycle_error(exc):
+                    raise
+                logging.info("Cycle %s recovered and completed.", cycle)
             if once:
                 return
             self.sleep_with_abort(float(self.config["timing"]["after_cycle_wait_sec"]))
