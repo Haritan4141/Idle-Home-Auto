@@ -27,15 +27,15 @@ VRChat のワールド `Idle Home` をデスクトップモードで周回する
 
 # 現在の目的
 
-直近の目的は、複数 PC で `Idle Home` 周回を長時間放置できるレベルまで安定化しつつ、離席中でもスマホから状態確認できる運用にすること。
+直近の目的は、v0.0.6 を基準状態として、複数 PC で `Idle Home` 周回を長時間放置できるレベルまで安定化すること。
 
 具体的には以下を目指している。
 
 - main PC / 4790K PC / 3950X PC それぞれの config を安定化する
-- GUI から config を選んで起動できるようにする
-- iPhone から LAN 内ステータスページで稼働状況を確認できるようにする
-- `ntfy` で BotError 停止時に通知を受け取れるようにする
-- 安定している状態を release tag で固定し、いつでも戻れるようにする
+- v0.0.6 で追加した recovery 最大3回再試行が実機で期待通り動くか確認する
+- iPhone から LAN 内ステータスページで稼働状況を確認しながら長時間テストする
+- `ntfy` で BotError 停止時に通知を受け取れる運用を維持する
+- 安定している状態を release tag で固定し、問題が出たら戻れるようにする
 
 # 現在の進捗
 
@@ -58,6 +58,11 @@ VRChat のワールド `Idle Home` をデスクトップモードで周回する
 - `idle_home_config.json` と `idle_home_config_3950X.json` には `ntfy Topic: idle-home-main` を設定済み
 - v0.0.5 release state を作成済み
 - v0.0.6 release state を作成済み
+- `idle_home_gui.py` の GUI 表示バージョンは `0.0.6`
+- `build_release.bat` のデフォルト build version は `0.0.6`
+- `README.md` の build/release 例は `v0.0.6`
+- `v0.0.6` tag は `Update version references for v0.0.6` commit に付与済み
+- `origin/main` は v0.0.6 の最新状態まで push 済み
 
 リリース履歴の現状。
 
@@ -70,9 +75,7 @@ VRChat のワールド `Idle Home` をデスクトップモードで周回する
 
 # 作業ログ（今回）
 
-今回の作業では、現在のプロジェクト状況を初見でも追えるようにするため、この `docs/ai_context.md` を新規作成した。
-
-直近の大きな作業内容は以下。
+直近までの大きな作業内容は以下。
 
 - LAN 内ステータスWebページを GUI に実装
 - `http://<PC-IP>:8787/` で iPhone などから状態確認できるようにした
@@ -107,6 +110,10 @@ VRChat のワールド `Idle Home` をデスクトップモードで周回する
 - recovery は `max_attempts` を設定可能にし、main / 4790K / 3950X の各 config は最大3回まで復帰を試行する
 - GUI の表示バージョン、release build のデフォルトバージョン、README のビルド例を `v0.0.6` に更新
 - GUI の recovery summary 正規表現を `max_attempts` / `on attempt x/y` 付きログに対応
+- v0.0.6 用の commit / tag / GitHub Release 作成を完了
+- 現在の `HEAD` は `e5c0dd0 Update version references for v0.0.6`
+- 現在の `v0.0.6` tag は `HEAD` を指している
+- 未追跡ファイルとして `参考画像/escメニュー*.png`、`参考画像/recover_move_to_ascend_board_*.png`、`参考画像/リカバリー_▶ボタン不要.png`、`参考画像/設定.png` が残っている。現時点では Git 管理に含めていない
 
 # MCP操作ログ
 
@@ -132,50 +139,25 @@ VRChat のワールド `Idle Home` をデスクトップモードで周回する
 - `after_ascend` の誤判定・早抜けが再発しないかの監視
 - `pickup_sword` の取得確認が甘すぎる / 厳しすぎるケースの継続調整
 - `ascend` の `▶` 画像認識が立ち位置ズレで失敗するケースの継続調整
-- v0.0.6 の GitHub Release 作成と zip アップロード
 - EXE ビルド後の status page / ntfy 通知の実機確認
 - `ntfy` topic の運用ルール整理
-- ESC メニューの `リスポーン` ボタンテンプレート作成
-- 復帰用 ascend sequence の実機調整
-- `recover_move_to_ascend_board` の `W` / `D` 秒数調整
-- `recover_reset_view` の上下マウス移動量調整
-- `recover_to_ascend` の単体テスト
-- `recover_respawn` の単体テスト
-- `recover_from_failure` の一連動作テスト
-- 自動復帰が実際の `BotError` 停止時に正しく動くかの長時間検証
+- recovery 最大3回再試行が実際の `BotError` 停止時に正しく動くかの長時間検証
+- `recover_from_failure` が main / 4790K / 3950X の各 PC で安定して通るかの継続確認
 - LAN 内ステータスページの要約ログが実機で期待通り更新されるか確認
 - `status_summary.log` が各 PC の config フォルダに保存されるか確認
+- 未追跡の参考画像を今後 Git 管理に入れるか整理する
 
 # 次にやること
 
 次回すぐ着手する作業。
 
-1. v0.0.6 を GitHub へ push する
-
-```powershell
-git push origin main
-git push origin v0.0.6
-```
-
-2. v0.0.6 の release zip を作成する
-
-```powershell
-.\build_release.bat 0.0.6
-```
-
-3. GitHub Release に以下をアップロードする
-
-```text
-release\IdleHomeBot-v0.0.6.zip
-```
-
-4. 各 PC で最新を取得する
+1. 各 PC で v0.0.6 を取得する
 
 ```powershell
 git pull
 ```
 
-5. GUI を起動して status page と ntfy を確認する
+2. GUI が v0.0.6 表示になっていることを確認する
 
 ```powershell
 .\launch_gui.bat
@@ -183,37 +165,41 @@ git pull
 .\launch_gui_4790K.bat
 ```
 
-6. iPhone でステータスページを開く
+3. GUI で status page と ntfy を確認する
 
 ```text
-http://<PC-IP>:8787/
+Status Page: http://<PC-IP>:8787/
+Notifications tab -> Test Notification
 ```
 
-7. GUI の `Test Notification` で `ntfy` 通知を確認する
+4. recovery 単体テストを必要に応じて実行する
 
-8. 長時間放置テストを再開する
+```powershell
+python .\idle_home_bot.py --config .\idle_home_config_3950X.json run-sequence recover_respawn --startup-delay 3
+python .\idle_home_bot.py --config .\idle_home_config_3950X.json run-sequence recover_reset_view --startup-delay 3
+python .\idle_home_bot.py --config .\idle_home_config_3950X.json run-sequence recover_to_ascend --startup-delay 3
+python .\idle_home_bot.py --config .\idle_home_config_3950X.json run-sequence recover_from_failure --startup-delay 3
+```
 
-9. 停止時の自動復帰処理を実装する
+5. 長時間放置テストを再開する
 
-- `recover_respawn` を任意位置から実行し、ESC メニューを開いてリスポーンできるか確認する
-- `recover_reset_view` を単体テストし、上方向限界移動量と正面戻し量を調整する
-- `recover_move_to_ascend_board` を初期地点から実行し、`W 0.5s -> D 3.0s` の移動量を実機で調整する
-- `recover_to_ascend` sequence を追加して単体テストする
-- `recover_from_failure` を任意位置から実行し、リスポーンから Ascend 完了まで通るか確認する
-- recovery 成功時は次 cycle へ戻ることを長時間テストで確認する
-- recovery 失敗時だけ停止通知されることを確認する
-- LAN 内ステータスページで `Started At` / `Last Recovery` / `Stopped At` / `Summary Events` を確認する
+```powershell
+.\launch_gui.bat
+.\launch_gui_3950X.bat
+.\launch_gui_4790K.bat
+```
 
-10. 停止した場合は `failure_captures/` の最新一式を見て原因を分類する
+6. 停止した場合は `failure_captures/` の最新一式を見て原因を分類する
 
 - `pickup_sword` 取得失敗
 - `pickup_sword` 取得確認の誤判定
 - `ascend` 立ち位置ズレ
 - `after_ascend` UI 残留
+- recovery 1回目/2回目/3回目のどこで失敗したか
 - menu / Launch Pad 残留
 - その他
 
-11. 重要な進捗・設計変更・安定化結果が出たら、この `docs/ai_context.md` を更新する
+7. 重要な進捗・設計変更・安定化結果が出たら、この `docs/ai_context.md` を更新する
 
 # 注意点・制約
 
@@ -227,14 +213,14 @@ http://<PC-IP>:8787/
 - `failure_captures/` は原因調査の主情報源
 - failure screenshot だけでなく `.log`、`.recent.log`、`_snap*.png` も見る
 - `git pull` 時に config のローカル変更があると merge が止まる
-- Codex 環境から GitHub への `git push` はネットワーク制限で失敗するため、push はユーザー側で実行する
+- 過去に Codex 側で `.git/index.lock` の権限問題が発生した。Git 操作が失敗する場合はユーザー側 PowerShell で `git add` / `commit` / `tag` / `push` を行う
 - `build/`、`dist/`、`release/` は生成物であり、基本的に Git 管理対象ではない
 - `ntfy.sh` を使う場合はインターネット接続が必要
 - iPhone の `ntfy` アプリで公開 `ntfy.sh` を使う場合、`Use another server` は OFF にする
 - LAN 内ステータスページは GUI 起動中のみ有効
 - CLI で `idle_home_bot.py run` した場合、現状ではステータスページは出ない
 - Windows Firewall が status page の LAN アクセスを止める場合がある
-- recovery は無限ループさせない。まずは 1 cycle あたり 1 回だけ試行する
+- recovery は無限ループさせない。v0.0.6 では `recovery.max_attempts=3` により最大3回まで試行し、3回とも失敗した場合だけ停止する
 - recovery 成功時は通知を出しすぎないようにし、ログとステータスページで確認できる形を優先する
 - recovery 用 ascend は通常 `ascend` と前提位置が違うため、通常 sequence をそのまま流用しない
 - リスポーン後の視界 pitch はリスポーン前の視界に影響されるため、recovery では視点リセットを入れる前提にする
