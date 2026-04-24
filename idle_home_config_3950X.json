@@ -320,59 +320,69 @@
         "seconds": 0.35
       },
       {
-        "type": "vision_center_click",
-        "template": "templates/ascend_next_triangle.png",
-        "anchor_x": 22,
-        "anchor_y": 36,
-        "search_region": [
-          560,
-          200,
-          500,
-          360
-        ],
-        "threshold": 0.62,
-        "candidate_threshold": 0.46,
-        "tracking_threshold": 0.42,
-        "centered_fallback_threshold": 0.42,
-        "centered_fallback_retries": 1,
-        "click_repeat": 17,
-        "click_repeat_pause_sec": 0.08,
-        "tolerance_px": 40,
-        "gain_x": 0.9,
-        "gain_y": 0.9,
-        "max_attempts": 10,
-        "max_step_px": 90,
-        "post_move_wait_sec": 0.05,
-        "pre_click_wait_sec": 0.03,
-        "post_click_wait_sec": 0.15
-      },
-      {
-        "type": "wait",
-        "seconds": 0.35
-      },
-      {
-        "type": "mouse_move_relative",
-        "dx": -255,
-        "dy": 100,
-        "steps": 8,
-        "step_delay_ms": 16
-      },
-      {
-        "type": "left_click"
-      },
-      {
-        "type": "wait",
-        "seconds": 0.45
-      },
-      {
-        "type": "mouse_move_relative",
-        "dx": 145,
-        "dy": 20,
-        "steps": 5,
-        "step_delay_ms": 16
-      },
-      {
-        "type": "left_click"
+        "type": "recover_ascend",
+        "max_state_attempts": 4,
+        "confirm_after_board_attempts": 4,
+        "after_board_wait_sec": 0.45,
+        "after_next_wait_sec": 0.35,
+        "confirm_retry_wait_sec": 0.25,
+        "state_retry_wait_sec": 0.25,
+        "confirm": {
+          "template": "templates/ascend_confirm_button.png",
+          "anchor_x": 210,
+          "anchor_y": 90,
+          "search_region": [
+            220,
+            220,
+            720,
+            380
+          ],
+          "threshold": 0.5,
+          "match_mode": "color",
+          "pre_click_wait_sec": 0.03,
+          "post_click_wait_sec": 0.25
+        },
+        "board": {
+          "template": "templates/ascend_board_button.png",
+          "anchor_x": 300,
+          "anchor_y": 68,
+          "search_region": [
+            0,
+            250,
+            1200,
+            520
+          ],
+          "threshold": 0.42,
+          "match_mode": "color",
+          "pre_click_wait_sec": 0.03,
+          "post_click_wait_sec": 0.25
+        },
+        "next": {
+          "template": "templates/ascend_next_triangle.png",
+          "anchor_x": 22,
+          "anchor_y": 36,
+          "search_region": [
+            560,
+            200,
+            500,
+            360
+          ],
+          "threshold": 0.62,
+          "candidate_threshold": 0.46,
+          "tracking_threshold": 0.42,
+          "centered_fallback_threshold": 0.42,
+          "centered_fallback_retries": 1,
+          "click_repeat": 17,
+          "click_repeat_pause_sec": 0.08,
+          "tolerance_px": 40,
+          "gain_x": 0.9,
+          "gain_y": 0.9,
+          "max_attempts": 10,
+          "max_step_px": 90,
+          "post_move_wait_sec": 0.05,
+          "pre_click_wait_sec": 0.03,
+          "post_click_wait_sec": 0.15
+        }
       }
     ],
     "recover_from_failure": [
@@ -431,59 +441,69 @@
         "seconds": 0.35
       },
       {
-        "type": "vision_center_click",
-        "template": "templates/ascend_next_triangle.png",
-        "anchor_x": 22,
-        "anchor_y": 36,
-        "search_region": [
-          560,
-          200,
-          500,
-          360
-        ],
-        "threshold": 0.62,
-        "candidate_threshold": 0.46,
-        "tracking_threshold": 0.42,
-        "centered_fallback_threshold": 0.42,
-        "centered_fallback_retries": 1,
-        "click_repeat": 17,
-        "click_repeat_pause_sec": 0.08,
-        "tolerance_px": 40,
-        "gain_x": 0.9,
-        "gain_y": 0.9,
-        "max_attempts": 10,
-        "max_step_px": 90,
-        "post_move_wait_sec": 0.05,
-        "pre_click_wait_sec": 0.03,
-        "post_click_wait_sec": 0.15
-      },
-      {
-        "type": "wait",
-        "seconds": 0.35
-      },
-      {
-        "type": "mouse_move_relative",
-        "dx": -255,
-        "dy": 100,
-        "steps": 8,
-        "step_delay_ms": 16
-      },
-      {
-        "type": "left_click"
-      },
-      {
-        "type": "wait",
-        "seconds": 0.45
-      },
-      {
-        "type": "mouse_move_relative",
-        "dx": 145,
-        "dy": 20,
-        "steps": 5,
-        "step_delay_ms": 16
-      },
-      {
-        "type": "left_click"
+        "type": "recover_ascend",
+        "max_state_attempts": 4,
+        "confirm_after_board_attempts": 4,
+        "after_board_wait_sec": 0.45,
+        "after_next_wait_sec": 0.35,
+        "confirm_retry_wait_sec": 0.25,
+        "state_retry_wait_sec": 0.25,
+        "confirm": {
+          "template": "templates/ascend_confirm_button.png",
+          "anchor_x": 210,
+          "anchor_y": 90,
+          "search_region": [
+            220,
+            220,
+            720,
+            380
+          ],
+          "threshold": 0.5,
+          "match_mode": "color",
+          "pre_click_wait_sec": 0.03,
+          "post_click_wait_sec": 0.25
+        },
+        "board": {
+          "template": "templates/ascend_board_button.png",
+          "anchor_x": 300,
+          "anchor_y": 68,
+          "search_region": [
+            0,
+            250,
+            1200,
+            520
+          ],
+          "threshold": 0.42,
+          "match_mode": "color",
+          "pre_click_wait_sec": 0.03,
+          "post_click_wait_sec": 0.25
+        },
+        "next": {
+          "template": "templates/ascend_next_triangle.png",
+          "anchor_x": 22,
+          "anchor_y": 36,
+          "search_region": [
+            560,
+            200,
+            500,
+            360
+          ],
+          "threshold": 0.62,
+          "candidate_threshold": 0.46,
+          "tracking_threshold": 0.42,
+          "centered_fallback_threshold": 0.42,
+          "centered_fallback_retries": 1,
+          "click_repeat": 17,
+          "click_repeat_pause_sec": 0.08,
+          "tolerance_px": 40,
+          "gain_x": 0.9,
+          "gain_y": 0.9,
+          "max_attempts": 10,
+          "max_step_px": 90,
+          "post_move_wait_sec": 0.05,
+          "pre_click_wait_sec": 0.03,
+          "post_click_wait_sec": 0.15
+        }
       }
     ],
     "after_ascend": [

@@ -544,6 +544,7 @@ def validate_action(action: dict[str, Any], points: dict[str, Any]) -> None:
         "vision_center_click",
         "vision_wait_absent",
         "respawn_from_escape_menu",
+        "recover_ascend",
         "pattern_click",
         "left_click",
         "right_click",
@@ -610,6 +611,21 @@ def validate_action(action: dict[str, Any], points: dict[str, Any]) -> None:
         if search_region is not None:
             if not isinstance(search_region, list) or len(search_region) != 4:
                 raise BotError("respawn_from_escape_menu search_region must be [x, y, width, height].")
+        return
+
+    if action_type == "recover_ascend":
+        for section_name in ("confirm", "board", "next"):
+            section = action.get(section_name)
+            if not isinstance(section, dict):
+                raise BotError(f"recover_ascend action requires {section_name}.")
+            if "template" not in section:
+                raise BotError(f"recover_ascend {section_name} requires template.")
+            search_region = section.get("search_region")
+            if search_region is not None:
+                if not isinstance(search_region, list) or len(search_region) != 4:
+                    raise BotError(
+                        f"recover_ascend {section_name} search_region must be [x, y, width, height]."
+                    )
         return
 
     if action_type == "pattern_click":
@@ -961,6 +977,53 @@ class IdleHomeBot:
             result = cv2.matchTemplate(haystack_gray, template_gray, cv2.TM_CCOEFF_NORMED)
         _, score, _, max_loc = cv2.minMaxLoc(result)
         return score, (offset_x + max_loc[0], offset_y + max_loc[1])
+
+    def click_template_if_visible(
+        self,
+        info: WindowInfo,
+        action: dict[str, Any],
+        label: str,
+    ) -> bool:
+        template_path = str(action["template"])
+        template = self.load_template(template_path)
+        match_mode = str(action.get("match_mode", "gray")).lower()
+        search_region = action.get("search_region")
+        threshold = float(action.get("threshold", 0.6))
+        anchor_x = int(action.get("anchor_x", template.shape[1] // 2))
+        anchor_y = int(action.get("anchor_y", template.shape[0] // 2))
+        button = str(action.get("button", "left")).lower()
+        click_repeat = max(int(action.get("click_repeat", 1)), 1)
+        click_repeat_pause_sec = float(action.get("click_repeat_pause_sec", 0.08))
+        pre_click_wait_sec = float(action.get("pre_click_wait_sec", 0.03))
+        post_click_wait_sec = float(action.get("post_click_wait_sec", 0.15))
+
+        screenshot = capture_client_image(info)
+        score, top_left = self.find_template(screenshot, template, search_region, match_mode)
+        target_x = top_left[0] + anchor_x
+        target_y = top_left[1] + anchor_y
+        logging.info(
+            "Template click candidate %s %s score=%.3f top_left=(%s,%s) target=(%s,%s) threshold=%.3f",
+            label,
+            template_path,
+            score,
+            top_left[0],
+            top_left[1],
+            target_x,
+            target_y,
+            threshold,
+        )
+        if score < threshold:
+            return False
+
+        screen_x = info.origin_x + target_x
+        screen_y = info.origin_y + target_y
+        logging.info("Template click %s -> (%s, %s)", label, screen_x, screen_y)
+        if not self.dry_run:
+            set_cursor_position(screen_x, screen_y)
+        self.sleep_with_abort(pre_click_wait_sec)
+        self.perform_click(button, repeat=click_repeat, pause_sec=click_repeat_pause_sec)
+        self.sleep_with_abort(post_click_wait_sec)
+        return True
 
     def resolve_point(self, info: WindowInfo, action: dict[str, Any]) -> tuple[int, int]:
         if "target" in action:
@@ -1401,6 +1464,83 @@ class IdleHomeBot:
             f"top_left=({last_top_left[0]},{last_top_left[1]}))."
         )
 
+    def recover_ascend(self, info: WindowInfo, action: dict[str, Any]) -> None:
+        confirm_action = dict(action["confirm"])
+        board_action = dict(action["board"])
+        next_action = dict(action["next"])
+        next_action["type"] = "vision_center_click"
+
+        max_state_attempts = max(int(action.get("max_state_attempts", 3)), 1)
+        confirm_after_board_attempts = max(int(action.get("confirm_after_board_attempts", 3)), 1)
+        after_board_wait_sec = float(action.get("after_board_wait_sec", 0.45))
+        after_next_wait_sec = float(action.get("after_next_wait_sec", 0.35))
+        confirm_retry_wait_sec = float(action.get("confirm_retry_wait_sec", 0.25))
+        state_retry_wait_sec = float(action.get("state_retry_wait_sec", 0.35))
+        last_error: BotError | None = None
+
+        def click_board_then_confirm(board_label: str) -> bool | None:
+            if not self.click_template_if_visible(info, board_action, board_label):
+                return None
+            self.sleep_with_abort(after_board_wait_sec)
+            for confirm_attempt in range(1, confirm_after_board_attempts + 1):
+                if self.click_template_if_visible(info, confirm_action, "recover_confirm_after_board"):
+                    logging.info("Recover ascend completed after board click.")
+                    return True
+                logging.info(
+                    "Recover ascend confirm not visible after board click (%s/%s).",
+                    confirm_attempt,
+                    confirm_after_board_attempts,
+                )
+                self.sleep_with_abort(confirm_retry_wait_sec)
+            return False
+
+        for state_attempt in range(1, max_state_attempts + 1):
+            logging.info("Recover ascend state attempt %s/%s", state_attempt, max_state_attempts)
+
+            if self.click_template_if_visible(info, confirm_action, "recover_confirm"):
+                logging.info("Recover ascend completed from visible confirm button.")
+                return
+
+            board_result = click_board_then_confirm("recover_board")
+            if board_result is True:
+                return
+            if board_result is False:
+                self.sleep_with_abort(state_retry_wait_sec)
+                continue
+
+            try:
+                self.vision_center_click(info, next_action)
+                self.sleep_with_abort(after_next_wait_sec)
+            except BotError as exc:
+                last_error = exc
+                logging.info(
+                    "Recover ascend next click did not complete on state attempt %s/%s: %s",
+                    state_attempt,
+                    max_state_attempts,
+                    exc,
+                )
+                if state_attempt >= max_state_attempts:
+                    raise
+                self.sleep_with_abort(state_retry_wait_sec)
+                continue
+
+            if self.click_template_if_visible(info, confirm_action, "recover_confirm_after_next"):
+                logging.info("Recover ascend completed from visible confirm button after next click.")
+                return
+
+            board_result = click_board_then_confirm("recover_board_after_next")
+            if board_result is True:
+                return
+            if board_result is False:
+                self.sleep_with_abort(state_retry_wait_sec)
+                continue
+
+            self.sleep_with_abort(state_retry_wait_sec)
+
+        if last_error is not None:
+            raise BotError(f"recover_ascend could not complete after next click failure: {last_error}")
+        raise BotError(f"recover_ascend could not complete in {max_state_attempts} state attempts.")
+
     def pattern_click(self, action: dict[str, Any]) -> None:
         button = str(action.get("button", "left")).lower()
         if button not in {"left", "right"}:
@@ -1478,6 +1618,10 @@ class IdleHomeBot:
 
         if action_type == "respawn_from_escape_menu":
             self.respawn_from_escape_menu(info, action)
+            return
+
+        if action_type == "recover_ascend":
+            self.recover_ascend(info, action)
             return
 
         if action_type == "pattern_click":

@@ -102,6 +102,9 @@ VRChat のワールド `Idle Home` をデスクトップモードで周回する
 - `respawn_from_escape_menu` はリスポーンボタンが見えていればそのままクリックし、見えていなければ `ESC` で開いてからクリックする
 - LAN 内ステータスページに `Started At` / `Last Recovery` / `Stopped At` / `Summary Events` を追加
 - GUI 起動フォルダに `status_summary.log` を作成し、START / RECOVERY START / RECOVERY SUCCESS / STOP を要約ログとして追記する
+- 3950X PC の recovery 中に、Ascend 確認 UI が既に表示されている状態や、`▶` ボタンを押さずに `Astral Ascension` ボタンを押せる状態があることを確認
+- 復帰用に `recover_ascend` action を追加し、`confirm button -> board button -> ▶ button` の順に画面状態を判定して進むようにした
+- `idle_home_config_3950X.json` の `recover_to_ascend` / `recover_from_failure` は `recover_ascend` を使う構成へ変更
 
 # MCP操作ログ
 
