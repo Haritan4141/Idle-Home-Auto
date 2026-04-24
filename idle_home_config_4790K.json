@@ -19,7 +19,9 @@
   "recovery": {
     "enabled": true,
     "sequence": "recover_from_failure",
-    "verify_sequence": "after_ascend"
+    "verify_sequence": "after_ascend",
+    "max_attempts": 3,
+    "retry_delay_sec": 1.0
   },
   "timing": {
     "startup_delay_sec": 3.0,

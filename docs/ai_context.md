@@ -102,6 +102,7 @@ VRChat のワールド `Idle Home` をデスクトップモードで周回する
 - `respawn_from_escape_menu` はリスポーンボタンが見えていればそのままクリックし、見えていなければ `ESC` で開いてからクリックする
 - LAN 内ステータスページに `Started At` / `Last Recovery` / `Stopped At` / `Summary Events` を追加
 - GUI 起動フォルダに `status_summary.log` を作成し、START / RECOVERY START / RECOVERY SUCCESS / STOP を要約ログとして追記する
+- recovery は `max_attempts` を設定可能にし、main / 4790K / 3950X の各 config は最大3回まで復帰を試行する
 
 # MCP操作ログ
 

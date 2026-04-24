@@ -682,10 +682,13 @@ def validate_config(config: dict[str, Any]) -> None:
     if bool(recovery_config.get("enabled", False)):
         recovery_sequence = str(recovery_config.get("sequence", "recover_from_failure"))
         recovery_verify_sequence = str(recovery_config.get("verify_sequence", "after_ascend"))
+        recovery_max_attempts = int(recovery_config.get("max_attempts", 1))
         if recovery_sequence not in sequences:
             raise BotError(f'Recovery sequence "{recovery_sequence}" is not defined.')
         if recovery_verify_sequence and recovery_verify_sequence not in sequences:
             raise BotError(f'Recovery verify sequence "{recovery_verify_sequence}" is not defined.')
+        if recovery_max_attempts < 1:
+            raise BotError("Recovery max_attempts must be 1 or greater.")
 
     for timing_name in {"startup_delay_sec", "combat_duration_sec", "after_cycle_wait_sec"}:
         if timing_name not in config["timing"]:
@@ -1566,35 +1569,59 @@ class IdleHomeBot:
 
         sequence_name = str(recovery_config.get("sequence", "recover_from_failure"))
         verify_sequence_name = str(recovery_config.get("verify_sequence", "after_ascend"))
+        max_attempts = max(int(recovery_config.get("max_attempts", 1)), 1)
+        retry_delay_sec = max(float(recovery_config.get("retry_delay_sec", 1.0)), 0.0)
         if sequence_name not in self.config["sequences"]:
             raise BotError(f'Recovery sequence "{sequence_name}" is not defined.') from error
         if verify_sequence_name and verify_sequence_name not in self.config["sequences"]:
             raise BotError(f'Recovery verify sequence "{verify_sequence_name}" is not defined.') from error
 
         original_error = str(error)
-        logging.warning("Cycle %s failed. Starting recovery: %s", self.current_cycle, original_error)
+        logging.warning(
+            "Cycle %s failed. Starting recovery (max_attempts=%s): %s",
+            self.current_cycle,
+            max_attempts,
+            original_error,
+        )
         if not self.dry_run:
             self.capture_failure_artifacts(f"Recoverable cycle error: {original_error}")
 
-        try:
-            info = ensure_window(self.config, self.allow_size_mismatch)
-            self.record_state_snapshot("recovery_start")
-            self.run_sequence(sequence_name, info)
-            if verify_sequence_name:
-                self.run_sequence(verify_sequence_name, info)
-            self.record_state_snapshot("recovery_success")
-        except BotError as recovery_error:
-            raise BotError(
-                f"Recovery failed after cycle error: {original_error} "
-                f"(recovery error: {recovery_error})"
-            ) from recovery_error
-        finally:
-            if sys.exc_info()[0] is None:
+        last_recovery_error: BotError | None = None
+        for attempt in range(1, max_attempts + 1):
+            logging.warning("Recovery attempt %s/%s for cycle %s.", attempt, max_attempts, self.current_cycle)
+            try:
+                info = ensure_window(self.config, self.allow_size_mismatch)
+                self.record_state_snapshot(f"recovery_start_attempt{attempt:02d}")
+                self.run_sequence(sequence_name, info)
+                if verify_sequence_name:
+                    self.run_sequence(verify_sequence_name, info)
+                self.record_state_snapshot(f"recovery_success_attempt{attempt:02d}")
+            except BotError as recovery_error:
+                last_recovery_error = recovery_error
+                logging.warning(
+                    "Recovery attempt %s/%s failed for cycle %s: %s",
+                    attempt,
+                    max_attempts,
+                    self.current_cycle,
+                    recovery_error,
+                )
+                self.record_state_snapshot(f"recovery_failed_attempt{attempt:02d}")
+                if attempt >= max_attempts:
+                    raise BotError(
+                        f"Recovery failed after {max_attempts} attempts for cycle error: {original_error} "
+                        f"(last recovery error: {last_recovery_error})"
+                    ) from recovery_error
                 self.current_sequence = None
                 self.current_action_type = None
+                self.sleep_with_abort(retry_delay_sec)
+                continue
 
-        logging.info("Recovery succeeded for cycle %s.", self.current_cycle)
-        return True
+            self.current_sequence = None
+            self.current_action_type = None
+            logging.info("Recovery succeeded for cycle %s on attempt %s/%s.", self.current_cycle, attempt, max_attempts)
+            return True
+
+        raise BotError(f"Recovery did not run for cycle error: {original_error}")
 
     def run_forever(self, once: bool) -> None:
         self.countdown(float(self.config["timing"]["startup_delay_sec"]))
