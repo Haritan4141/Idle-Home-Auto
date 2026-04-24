@@ -57,6 +57,7 @@ VRChat のワールド `Idle Home` をデスクトップモードで周回する
 - GUI に `Test Notification` ボタンを追加済み
 - `idle_home_config.json` と `idle_home_config_3950X.json` には `ntfy Topic: idle-home-main` を設定済み
 - v0.0.5 release state を作成済み
+- v0.0.6 release state を作成済み
 
 リリース履歴の現状。
 
@@ -65,6 +66,7 @@ VRChat のワールド `Idle Home` をデスクトップモードで周回する
 - `v0.0.3`: main PC / 4790K PC の安定寄り状態を固定
 - `v0.0.4`: 3950X PC 対応と `Next Click Count` などを反映
 - `v0.0.5`: LAN 内ステータスページと `ntfy` 通知を追加
+- `v0.0.6`: recovery の最大3回再試行とGUI/ビルド表記更新
 
 # 作業ログ（今回）
 
@@ -103,6 +105,8 @@ VRChat のワールド `Idle Home` をデスクトップモードで周回する
 - LAN 内ステータスページに `Started At` / `Last Recovery` / `Stopped At` / `Summary Events` を追加
 - GUI 起動フォルダに `status_summary.log` を作成し、START / RECOVERY START / RECOVERY SUCCESS / STOP を要約ログとして追記する
 - recovery は `max_attempts` を設定可能にし、main / 4790K / 3950X の各 config は最大3回まで復帰を試行する
+- GUI の表示バージョン、release build のデフォルトバージョン、README のビルド例を `v0.0.6` に更新
+- GUI の recovery summary 正規表現を `max_attempts` / `on attempt x/y` 付きログに対応
 
 # MCP操作ログ
 
@@ -128,7 +132,7 @@ VRChat のワールド `Idle Home` をデスクトップモードで周回する
 - `after_ascend` の誤判定・早抜けが再発しないかの監視
 - `pickup_sword` の取得確認が甘すぎる / 厳しすぎるケースの継続調整
 - `ascend` の `▶` 画像認識が立ち位置ズレで失敗するケースの継続調整
-- v0.0.5 の GitHub Release 作成と zip アップロード
+- v0.0.6 の GitHub Release 作成と zip アップロード
 - EXE ビルド後の status page / ntfy 通知の実機確認
 - `ntfy` topic の運用ルール整理
 - ESC メニューの `リスポーン` ボタンテンプレート作成
@@ -146,23 +150,23 @@ VRChat のワールド `Idle Home` をデスクトップモードで周回する
 
 次回すぐ着手する作業。
 
-1. v0.0.5 を GitHub へ push する
+1. v0.0.6 を GitHub へ push する
 
 ```powershell
 git push origin main
-git push origin v0.0.5
+git push origin v0.0.6
 ```
 
-2. v0.0.5 の release zip を作成する
+2. v0.0.6 の release zip を作成する
 
 ```powershell
-.\build_release.bat 0.0.5
+.\build_release.bat 0.0.6
 ```
 
 3. GitHub Release に以下をアップロードする
 
 ```text
-release\IdleHomeBot-v0.0.5.zip
+release\IdleHomeBot-v0.0.6.zip
 ```
 
 4. 各 PC で最新を取得する

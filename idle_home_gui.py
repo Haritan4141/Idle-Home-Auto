@@ -22,14 +22,14 @@ from urllib.parse import urlparse
 import idle_home_bot as botlib
 
 
-APP_VERSION = "0.0.5"
+APP_VERSION = "0.0.6"
 MOD_NOREPEAT = 0x4000
 WM_HOTKEY = 0x0312
 WM_QUIT = 0x0012
 CYCLE_START_RE = re.compile(r"\bCycle (\d+) start\b")
 SEQUENCE_RE = re.compile(r"\bSequence ([A-Za-z0-9_]+)\b")
-RECOVERY_START_RE = re.compile(r"\bCycle (\d+) failed\. Starting recovery:")
-RECOVERY_SUCCESS_RE = re.compile(r"\bRecovery succeeded for cycle (\d+)\.")
+RECOVERY_START_RE = re.compile(r"\bCycle (\d+) failed\. Starting recovery(?: \(max_attempts=\d+\))?:")
+RECOVERY_SUCCESS_RE = re.compile(r"\bRecovery succeeded for cycle (\d+)(?: on attempt \d+/\d+)?\.")
 STATUS_SERVER_PORT = 8787
 STATUS_SERVER_PORT_ATTEMPTS = 10
 SUMMARY_LOG_MAX_LINES = 100
