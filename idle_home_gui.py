@@ -178,6 +178,14 @@ class GuiStatusStore:
         except OSError:
             pass
 
+    def _reset_summary_events_locked(self) -> None:
+        self._summary_events = []
+        try:
+            self._summary_log_path.parent.mkdir(parents=True, exist_ok=True)
+            self._summary_log_path.write_text("", encoding="utf-8")
+        except OSError:
+            pass
+
     def set_config_path(self, config_path: Path) -> None:
         with self._lock:
             self._config_path = str(config_path)
@@ -197,6 +205,7 @@ class GuiStatusStore:
             self._started_ts = now
             self._stopped_ts = None
             self._last_update_ts = now
+            self._reset_summary_events_locked()
             self._append_summary_event_locked("START", f"mode={mode}")
 
     def mark_stop_requested(self) -> None:
